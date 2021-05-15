@@ -22,6 +22,7 @@ class GreedyMovePlayer(AbstractMovePlayer):
     the player receives time limit for a single step and the board as parameter and return the next move that gives
     the best score by looking one step ahead.
     """
+
     def get_move(self, board, time_limit) -> Move:
         optional_moves_score = {}
         for move in Move:
@@ -37,6 +38,7 @@ class RandomIndexPlayer(AbstractIndexPlayer):
     the player receives time limit for a single step and the board as parameter and return the next indices to
     put 2 randomly.
     """
+
     def get_indices(self, board, value, time_limit) -> (int, int):
         a = random.randint(0, len(board) - 1)
         b = random.randint(0, len(board) - 1)
@@ -52,15 +54,185 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
     implement get_move function with greedy move that looks only one step ahead with heuristic.
     (you can add helper functions as you want).
     """
+
     def __init__(self):
         AbstractMovePlayer.__init__(self)
-        # TODO: add here if needed
+
+    def calc_bonus(self, params):
+        bonus = 0
+        for i in range(0, len(params), 2):
+            bonus += params[i] * params[i + 1]
+        return bonus
+
+    """ Calculates how many empty cells are in the grid """
+
+    def get_empty_slots(self, board):
+        empty_slots = [item for item in board if item != 0]
+        return 16-len(empty_slots)
+
+    def calc_log(self, num):
+        log = 0
+        while num > 1:
+            num = num // 2
+            log = log + 1
+        return log
+
+    """ 
+    Calculates how much the grid is uniforaml - if all the cells
+    are equal, the function will return 0. Otherwise, it will return 
+    the inverse of sum of all differences (in abolute value) between neighbours in the grid.
+    """
+
+    def get_smoothness(self, board):
+        smoothness = 0
+        for row in range(len(board)):
+            for col in range(len(board)):
+                if board[row][col] is not 0:
+                    if board[row][3] is not 0:
+                        smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[row][3]))
+                    if board[3][col] is not 0:
+                        smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[3][col]))
+
+        return -smoothness/2
+
+    """ 
+    Bonus for tiles in monotonic structure where highest value is in one of the corners.
+    """
+
+    def get_monotonicity(self, board):
+        monotonicity = 0
+        last_row = 3
+        last_col = 3
+        for row in range(len(board) - 1):
+            if board[row][last_col] <= board[row + 1][last_col]:
+                monotonicity = monotonicity + 1
+            else:
+                monotonicity = monotonicity - 2
+
+        for col in range(len(board) - 1):
+            if board[last_row][col] <= board[last_row][col + 1]:
+                monotonicity = monotonicity + 1
+            else:
+                monotonicity = monotonicity - 20
+
+        return monotonicity
+
+    """ 
+    Calculates how much the grid is organized in some direction. 
+    """
+
+    def direction(self, board):
+        grid = [[0 for i in range(len(board))] for j in range(len(board))]
+        for row in range(len(board)):
+            for col in range(len(board)):
+                grid[row][col] = self.calc_log(board[row][col])
+
+        asndud = 0
+        dsndud = 0
+        asndlr = 0
+        dsndlr = 0
+        for row in range(4):
+            for col in range(4):
+                if col + 1 < 4:
+                    if grid[row][col] > grid[row][col + 1]:
+                        dsndlr -= grid[row][col] - grid[row][col + 1]
+                    else:
+                        asndlr += grid[row][col] - grid[row][col + 1]
+                if row + 1 < 4:
+                    if grid[row][col] > grid[row + 1][col]:
+                        dsndud -= grid[row][col] - grid[row + 1][col]
+                    else:
+                        asndud += grid[row][col] - grid[row + 1][col]
+        return max(dsndlr, asndlr) + max(dsndud, asndud)
+
+    """ Returns the maximal tile. """
+
+    def highestTile(self, board) -> int:
+        return max(max(board))
+
+    def heuristic(self, board):
+        w1 = 10
+        w2 = 1
+        w3 = 25
+        highestFact = 10
+        directionFact = 15
+
+        # calc monotonicity (snake)
+        monotonicity = self.get_monotonicity(board)
+        # calc smoothness
+        smoothness = self.get_smoothness(board)
+        # calc empty slots
+        empty_slots = self.get_empty_slots(board)
+        direction = self.direction(board)
+
+        max_tile = self.highestTile(board)
+
+        params = [w1, monotonicity, w2, smoothness, w3, empty_slots, directionFact, direction, highestFact, max_tile]
+
+        new_bonus = self.calc_bonus(params)
+        print("Monotonicity bonus = " + str(3) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(
+            empty_slots) + " Direction = " + str(direction))
+
+        return new_bonus / 10
 
     def get_move(self, board, time_limit) -> Move:
-        # TODO: erase the following line and implement this function.
-        raise NotImplementedError
+        optional_moves_score = {}
+        for move in Move:
+            new_board, done, score = commands[move](board)
+            if done:
+                optional_moves_score[move] = 1.4 * self.heuristic(board) + 1.4 * score
 
-    # TODO: add here helper functions in class, if needed
+        return max(optional_moves_score, key=optional_moves_score.get)
+
+
+def minimax_search(state, depth, agent):
+    if depth == 0 or MiniMaxMovePlayer.is_goal(board=state) is True:
+        minimax_agent = MiniMaxMovePlayer()
+        return minimax_agent.heuristic(state)
+    if agent == Turn.MOVE_PLAYER_TURN:
+        curr_max = float('-inf')
+
+        for move in Move:
+            # store previous state of the board
+            prev_state = [[state[i][j] for i in range(4)] for j in range(4)]
+            # change the board
+            new_state, valid, score = commands[move](state)
+            if valid:
+                value = minimax_search(state, depth - 1, False)
+                state = [[prev_state[i][j] for i in range(4)] for j in range(4)]
+                curr_max = max(curr_max, value)
+        return curr_max
+    else:
+        curr_min = float('inf')
+        for move in Move:
+            # store previous state of the board
+            prev_state = [[state[i][j] for i in range(4)] for j in range(4)]
+            # change the board
+            new_state, valid, score = commands[move](state)
+            if valid:
+                value = minimax_search(state, depth - 1, True)
+                state = [[prev_state[i][j] for i in range(4)] for j in range(4)]
+                curr_min = min(curr_min, value)
+        return curr_min
+
+
+def search(state, depth, agent):
+    max_value, best_move = float('-inf'), None
+    for move in Move:
+        # store previous state of the board
+        prev_state = [[state[i][j] for i in range(4)] for j in range(4)]
+
+        # change the board
+        new_state, valid, score = commands[move](state)
+
+        if valid:
+            cur_minimax_val = minimax_search(state, depth - 1, agent)
+            state = [[prev_state[i][j] for i in range(4)] for j in range(4)]
+
+            if cur_minimax_val >= max_value:
+                max_value = cur_minimax_val
+                best_move = move
+    return best_move, max_value
 
 
 # part B
@@ -69,15 +241,151 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
     implement get_move function according to MiniMax algorithm
     (you can add helper functions as you want).
     """
+
     def __init__(self):
         AbstractMovePlayer.__init__(self)
-        # TODO: add here if needed
 
     def get_move(self, board, time_limit) -> Move:
-        # TODO: erase the following line and implement this function.
-        raise NotImplementedError
+        time_start = time.time()
+        depth = 1
+        max_move, max_val = search(board, depth, Turn.MOVE_PLAYER_TURN)
+        last_iteration_time = time.time() - time_start
+        next_iteration_max_time = 4 * last_iteration_time
+        time_until_now = time.time() - time_start
+        while time_until_now + next_iteration_max_time < time_limit:
+            depth += 1
+            iteration_start_time = time.time()
+            last_good_move = max_move
+            max_move, val = search(board, depth, Turn.MOVE_PLAYER_TURN)
+            if val == float('inf'):
+                break
+            if val == float('-inf'):
+                max_move = last_good_move
+                break
+            last_iteration_time = time.time() - iteration_start_time
+            next_iteration_max_time = 4 * last_iteration_time
+            time_until_now = time.time() - time_start
+        return max_move
 
-    # TODO: add here helper functions in class, if needed
+    def calc_bonus(self, params):
+        bonus = 0
+        for i in range(0, len(params), 2):
+            bonus += params[i] * params[i + 1]
+        return bonus
+
+    """ Calculates how many empty cells are in the grid """
+
+    def get_empty_slots(self, board):
+        empty_slots = [item for item in board if item != 0]
+        return 16-len(empty_slots)
+
+    def calc_log(self, num):
+        log = 0
+        while num > 1:
+            num = num / 2
+            log = log + 1
+        return log
+
+    """ 
+    Calculates how much the grid is uniforaml - if all the cells
+    are equal, the function will return 0. Otherwise, it will return 
+    the inverse of sum of all differences (in abolute value) between neighbours in the grid.
+    """
+
+    def get_smoothness(self, board):
+        smoothness = 0
+        for row in range(len(board)):
+            for col in range(len(board)):
+                if board[row][col] is not 0:
+                    if board[row][3] is not 0:
+                        smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[row][3]))
+                    if board[3][col] is not 0:
+                        smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[3][col]))
+
+        return -smoothness
+
+    """ 
+    Bonus for tiles in monotonic structure where highest value is in one of the corners.
+    """
+
+    def get_monotonicity(self, board):
+        monotonicity = 0
+        last_row = 3
+        last_col = 3
+        for row in range(len(board)-1):
+            if board[row][last_col] <= board[row + 1][last_col]:
+                monotonicity = monotonicity + 1
+            else:
+                monotonicity = monotonicity - 2
+
+        for col in range(len(board)-1):
+            if board[last_row][col] <= board[last_row][col + 1]:
+                monotonicity = monotonicity + 1
+            else:
+                monotonicity = monotonicity - 2
+
+        return monotonicity
+
+    """ 
+    Calculates how much the grid is organized in some direction. 
+    """
+
+    def direction(self, board):
+        grid = [[0 for i in range(len(board))] for j in range(len(board))]
+        for row in range(len(board)):
+            for col in range(len(board)):
+                grid[row][col] = self.calc_log(board[row][col])
+
+        asnd_ud = 0
+        dsnd_ud = 0
+        asnd_lr = 0
+        dsnd_lr = 0
+        for row in range(4):
+            for col in range(4):
+                if col + 1 < 4:
+                    if grid[row][col] > grid[row][col + 1]:
+                        dsnd_lr -= grid[row][col] - grid[row][col + 1]
+                    else:
+                        asnd_lr += grid[row][col] - grid[row][col + 1]
+                if row + 1 < 4:
+                    if grid[row][col] > grid[row + 1][col]:
+                        dsnd_ud -= grid[row][col] - grid[row + 1][col]
+                    else:
+                        asnd_ud += grid[row][col] - grid[row + 1][col]
+        return max(dsnd_lr, asnd_lr) + max(dsnd_ud, asnd_ud)
+
+    """ Returns the maximal tile. """
+
+    def highestTile(self, board) -> int:
+        return max(max(board))
+
+    def heuristic(self, board):
+        monotonicityFact = 10
+        smoothnessFact = 1
+        emptyFact = 25
+        highestFact = 10
+        directionFact = 15
+
+        # calc monotonicity (snake)
+        monotonicity = self.get_monotonicity(board)
+        # calc smoothness
+        smoothness = self.get_smoothness(board)
+        # calc empty slots
+        empty_slots = self.get_empty_slots(board)
+        direction = self.direction(board)
+
+        max_tile = self.highestTile(board)
+
+        params = [monotonicityFact, monotonicity, smoothnessFact, smoothness, emptyFact, empty_slots, directionFact, direction, highestFact, max_tile]
+        #params = [monotonicityFact, monotonicity, smoothnessFact, smoothness, emptyFact, empty_slots, highestFact, max_tile]
+
+        new_bonus = self.calc_bonus(params)
+        #print("Monotonicity bonus = " + str(3) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(empty_slots) + " Direction = " + str(direction))
+
+        return new_bonus
+
+    def is_goal(board) -> bool:
+        return logic.game_state(board) == 'lose'
 
 
 class MiniMaxIndexPlayer(AbstractIndexPlayer):
@@ -87,6 +395,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
     implement get_indices function according to MiniMax algorithm, the value in minimax player value is only 2.
     (you can add helper functions as you want).
     """
+
     def __init__(self):
         AbstractIndexPlayer.__init__(self)
         # TODO: add here if needed
@@ -104,6 +413,7 @@ class ABMovePlayer(AbstractMovePlayer):
     implement get_move function according to Alpha Beta MiniMax algorithm
     (you can add helper functions as you want)
     """
+
     def __init__(self):
         AbstractMovePlayer.__init__(self)
         # TODO: add here if needed
@@ -121,6 +431,7 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
     implement get_move function according to Expectimax algorithm.
     (you can add helper functions as you want)
     """
+
     def __init__(self):
         AbstractMovePlayer.__init__(self)
         # TODO: add here if needed
@@ -137,6 +448,7 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
     implement get_indices function according to Expectimax algorithm, the value is number between {2,4}.
     (you can add helper functions as you want)
     """
+
     def __init__(self):
         AbstractIndexPlayer.__init__(self)
         # TODO: add here if needed
@@ -154,6 +466,7 @@ class ContestMovePlayer(AbstractMovePlayer):
     implement get_move function as you want to compete in the Tournament
     (you can add helper functions as you want)
     """
+
     def __init__(self):
         AbstractMovePlayer.__init__(self)
         # TODO: add here if needed
@@ -163,4 +476,3 @@ class ContestMovePlayer(AbstractMovePlayer):
         raise NotImplementedError
 
     # TODO: add here helper functions in class, if needed
-
