@@ -67,8 +67,7 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
     """ Calculates how many empty cells are in the grid """
 
     def get_empty_slots(self, board):
-        empty_slots = [item for item in board if item != 0]
-        return 16-len(empty_slots)
+        return len([item for item in board if item != 0])
 
     def calc_log(self, num):
         log = 0
@@ -88,10 +87,10 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         for row in range(len(board)):
             for col in range(len(board)):
                 if board[row][col] is not 0:
-                    if board[row][3] is not 0:
-                        smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[row][3]))
-                    if board[3][col] is not 0:
-                        smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[3][col]))
+                    if row + 1 < len(board):
+                        smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[row + 1][col]))
+                    if col + 1 < len(board):
+                        smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[row][col + 1]))
 
         return -smoothness/2
 
@@ -107,7 +106,7 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
             if board[row][last_col] <= board[row + 1][last_col]:
                 monotonicity = monotonicity + 1
             else:
-                monotonicity = monotonicity - 2
+                monotonicity = monotonicity - 20
 
         for col in range(len(board) - 1):
             if board[last_row][col] <= board[last_row][col + 1]:
