@@ -151,9 +151,9 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         return max(max(board))
 
     def heuristic(self, board):
-        w1 = 10
-        w2 = 1
-        w3 = 25
+        monotonicityFact = 10
+        smoothnessFact = 1
+        emptyFact = 25
         highestFact = 10
         directionFact = 15
 
@@ -167,11 +167,10 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
 
         max_tile = self.highestTile(board)
 
-        params = [w1, monotonicity, w2, smoothness, w3, empty_slots, directionFact, direction, highestFact, max_tile]
+        params = [monotonicityFact, monotonicity, smoothnessFact, smoothness, emptyFact, empty_slots, directionFact, direction, highestFact, max_tile]
 
         new_bonus = self.calc_bonus(params)
-        print("Monotonicity bonus = " + str(3) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(
-            empty_slots) + " Direction = " + str(direction))
+        # print("Monotonicity bonus = " + str(3) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(empty_slots) + " Direction = " + str(direction))
 
         return new_bonus / 10
 
@@ -191,14 +190,13 @@ def minimax_search(state, depth, agent):
         return minimax_agent.heuristic(state)
     if agent == Turn.MOVE_PLAYER_TURN:
         curr_max = float('-inf')
-
         for move in Move:
             # store previous state of the board
             prev_state = [[state[i][j] for i in range(4)] for j in range(4)]
             # change the board
             new_state, valid, score = commands[move](state)
             if valid:
-                value = minimax_search(state, depth - 1, False)
+                value = minimax_search(state, depth - 1, agent)
                 state = [[prev_state[i][j] for i in range(4)] for j in range(4)]
                 curr_max = max(curr_max, value)
         return curr_max
@@ -210,29 +208,47 @@ def minimax_search(state, depth, agent):
             # change the board
             new_state, valid, score = commands[move](state)
             if valid:
-                value = minimax_search(state, depth - 1, True)
+                value = minimax_search(state, depth - 1, agent)
                 state = [[prev_state[i][j] for i in range(4)] for j in range(4)]
                 curr_min = min(curr_min, value)
         return curr_min
 
 
 def search(state, depth, agent):
-    max_value, best_move = float('-inf'), None
-    for move in Move:
-        # store previous state of the board
-        prev_state = [[state[i][j] for i in range(4)] for j in range(4)]
+    if agent == Turn.MOVE_PLAYER_TURN:
+        max_value, best_move = float('-inf'), None
+        for move in Move:
+            # store previous state of the board
+            prev_state = [[state[i][j] for i in range(4)] for j in range(4)]
 
-        # change the board
-        new_state, valid, score = commands[move](state)
+            # change the board
+            new_state, valid, score = commands[move](state)
 
-        if valid:
-            cur_minimax_val = minimax_search(state, depth - 1, agent)
-            state = [[prev_state[i][j] for i in range(4)] for j in range(4)]
+            if valid:
+                cur_minimax_val = minimax_search(state, depth - 1, agent)
+                state = [[prev_state[i][j] for i in range(4)] for j in range(4)]
 
-            if cur_minimax_val >= max_value:
-                max_value = cur_minimax_val
-                best_move = move
-    return best_move, max_value
+                if cur_minimax_val >= max_value:
+                    max_value = cur_minimax_val
+                    best_move = move
+        return best_move, max_value
+    else:
+        min_value, a, b = float('inf'), 0, 0
+        for i in range(len(state)):
+            for j in range(len(state)):
+                # store previous state of the board
+                prev_state = [[state[i][j] for i in range(len(state))] for j in range(len(state))]
+
+                # change the board
+                if state[i][j] is 0:
+                    state[i][j] += 2
+                    cur_minimax_val = minimax_search(state, depth - 1, agent)
+                    state = [[prev_state[i][j] for i in range(len(state))] for j in range(len(state))]
+
+                    if cur_minimax_val <= min_value:
+                        min_value = cur_minimax_val
+                        a, b = i, j
+        return min_value, a, b
 
 
 # part B
@@ -398,13 +414,29 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
 
     def __init__(self):
         AbstractIndexPlayer.__init__(self)
-        # TODO: add here if needed
 
     def get_indices(self, board, value, time_limit) -> (int, int):
-        # TODO: erase the following line and implement this function.
-        raise NotImplementedError
+        time_start = time.time()
+        depth = 1
+        min_val, a, b = search(board, depth, Turn.INDEX_PLAYER_TURN)
+        last_iteration_time = time.time() - time_start
+        next_iteration_max_time = 4 * last_iteration_time
+        time_until_now = time.time() - time_start
+        while time_until_now + next_iteration_max_time < time_limit:
+            depth += 1
+            iteration_start_time = time.time()
+            x, y = a, b
+            val, a, b = search(board, depth, Turn.INDEX_PLAYER_TURN)
+            if val == float('inf'):
+                a, b = x, y
+                break
+            if val == float('-inf'):
+                break
+            last_iteration_time = time.time() - iteration_start_time
+            next_iteration_max_time = 4 * last_iteration_time
+            time_until_now = time.time() - time_start
+        return a, b
 
-    # TODO: add here helper functions in class, if needed
 
 
 # part C
