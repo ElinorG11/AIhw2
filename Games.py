@@ -94,7 +94,7 @@ class CustomGame(GameGrid):
 
                 i, j = indices
                 if i < 0 or j < 0 or i >= c.GRID_LEN or j >= c.GRID_LEN or self.matrix[i][j] != 0:
-                    print("illegal indices" + " " + str(i) + " " + str(j) + " " + str(self.matrix[i][j]))
+                    print("illegal indices")
                     break
 
                 self.matrix[i][j] = value
