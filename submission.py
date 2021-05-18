@@ -169,13 +169,6 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         return max(max(board))
 
     def heuristic(self, board):
-        """
-        monotonicityFact = 10
-        smoothnessFact = 10
-        emptyFact = 25
-        highestFact = 10
-        directionFact = 15
-        """
         monotonicityFact = 0.25
         smoothnessFact = 0.15
         emptyFact = 0.35
