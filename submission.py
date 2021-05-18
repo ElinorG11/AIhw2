@@ -97,25 +97,6 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
     """ 
     Bonus for tiles in monotonic structure where highest value is in one of the corners.
     """
-
-    def get_monotonicity(self, board):
-        monotonicity = 0
-        last_row = 3
-        last_col = 3
-        for row in range(len(board) - 1):
-            if board[row][last_col] <= board[row + 1][last_col]:
-                monotonicity = monotonicity + 1
-            else:
-                monotonicity = monotonicity - 20
-
-        for col in range(len(board) - 1):
-            if board[last_row][col] <= board[last_row][col + 1]:
-                monotonicity = monotonicity + 1
-            else:
-                monotonicity = monotonicity - 20
-
-        return monotonicity
-
     def get_monotonicity_weights(self, board):
         weights = [0.165, 0.121, 0.102, 0.0999,
                    0.0997, 0.088, 0.076, 0.0724,
@@ -198,16 +179,18 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         for move in Move:
             new_board, done, score = commands[move](board)
             if done:
-                # optional_moves_score[move] = 1.4 * self.heuristic(board) + 1.4 * score
                 optional_moves_score[move] = 0.15 * self.heuristic(board) + 0.85 * score
-
         return max(optional_moves_score, key=optional_moves_score.get)
 
 
 def minimax_search(state, depth, agent):
     if depth == 0 or MiniMaxMovePlayer.is_goal(board=state) is True:
-        minimax_agent = MiniMaxMovePlayer()
-        return minimax_agent.heuristic(state)
+        if agent == Turn.MOVE_PLAYER_TURN:
+            minimax_agent = MiniMaxMovePlayer()
+            return minimax_agent.heuristic(state)
+        else:
+            minimax_agent = MiniMaxIndexPlayer()
+            return minimax_agent.heuristic(state)
     if agent == Turn.MOVE_PLAYER_TURN:
         curr_max = float('-inf')
         for move in Move:
@@ -303,122 +286,16 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
             time_until_now = time.time() - time_start
         return max_move
 
-    def calc_bonus(self, params):
-        bonus = 0
-        for i in range(0, len(params), 2):
-            bonus += params[i] * params[i + 1]
-        return bonus
-
-    """ Calculates how many empty cells are in the grid """
-
-    def get_empty_slots(self, board):
-        empty_slots = [item for item in board if item != 0]
-        return 16-len(empty_slots)
-
-    def calc_log(self, num):
-        log = 0
-        while num > 1:
-            num = num / 2
-            log = log + 1
-        return log
-
-    """ 
-    Calculates how much the grid is uniforaml - if all the cells
-    are equal, the function will return 0. Otherwise, it will return 
-    the inverse of sum of all differences (in abolute value) between neighbours in the grid.
-    """
-
-    def get_smoothness(self, board):
-        smoothness = 0
-        for row in range(len(board)):
-            for col in range(len(board)):
-                if board[row][col] is not 0:
-                    if board[row][3] is not 0:
-                        smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[row][3]))
-                    if board[3][col] is not 0:
-                        smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[3][col]))
-
-        return -smoothness
-
-    """ 
-    Bonus for tiles in monotonic structure where highest value is in one of the corners.
-    """
-
-    def get_monotonicity(self, board):
-        monotonicity = 0
-        last_row = 3
-        last_col = 3
-        for row in range(len(board)-1):
-            if board[row][last_col] <= board[row + 1][last_col]:
-                monotonicity = monotonicity + 1
-            else:
-                monotonicity = monotonicity - 2
-
-        for col in range(len(board)-1):
-            if board[last_row][col] <= board[last_row][col + 1]:
-                monotonicity = monotonicity + 1
-            else:
-                monotonicity = monotonicity - 2
-
-        return monotonicity
-
-    """ 
-    Calculates how much the grid is organized in some direction. 
-    """
-
-    def direction(self, board):
-        grid = [[0 for i in range(len(board))] for j in range(len(board))]
-        for row in range(len(board)):
-            for col in range(len(board)):
-                grid[row][col] = self.calc_log(board[row][col])
-
-        asnd_ud = 0
-        dsnd_ud = 0
-        asnd_lr = 0
-        dsnd_lr = 0
-        for row in range(4):
-            for col in range(4):
-                if col + 1 < 4:
-                    if grid[row][col] > grid[row][col + 1]:
-                        dsnd_lr -= grid[row][col] - grid[row][col + 1]
-                    else:
-                        asnd_lr += grid[row][col] - grid[row][col + 1]
-                if row + 1 < 4:
-                    if grid[row][col] > grid[row + 1][col]:
-                        dsnd_ud -= grid[row][col] - grid[row + 1][col]
-                    else:
-                        asnd_ud += grid[row][col] - grid[row + 1][col]
-        return max(dsnd_lr, asnd_lr) + max(dsnd_ud, asnd_ud)
-
-    """ Returns the maximal tile. """
-
-    def highestTile(self, board) -> int:
-        return max(max(board))
-
     def heuristic(self, board):
-        monotonicityFact = 10
-        smoothnessFact = 1
-        emptyFact = 25
-        highestFact = 10
-        directionFact = 15
+        score = 0
+        emptySlots = 0
+        for row in range(len(board)):
+            for col in range(len(board)):
+                score += board[row][col]
+                if board[row][col] is 0:
+                    emptySlots += emptySlots + 1
 
-        # calc monotonicity (snake)
-        monotonicity = self.get_monotonicity(board)
-        # calc smoothness
-        smoothness = self.get_smoothness(board)
-        # calc empty slots
-        empty_slots = self.get_empty_slots(board)
-        direction = self.direction(board)
-
-        max_tile = self.highestTile(board)
-
-        params = [monotonicityFact, monotonicity, smoothnessFact, smoothness, emptyFact, empty_slots, directionFact, direction, highestFact, max_tile]
-        #params = [monotonicityFact, monotonicity, smoothnessFact, smoothness, emptyFact, empty_slots, highestFact, max_tile]
-
-        new_bonus = self.calc_bonus(params)
-        #print("Monotonicity bonus = " + str(3) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(empty_slots) + " Direction = " + str(direction))
-
-        return new_bonus
+        return 0.45 * score + 0.55 * emptySlots
 
     def is_goal(board) -> bool:
         return logic.game_state(board) == 'lose'
@@ -457,6 +334,16 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             time_until_now = time.time() - time_start
         return a, b
 
+    def heuristic(selfself, board):
+        score = 0
+        emptySlots = 0
+        for row in range(len(board)):
+            for col in range(len(board)):
+                score += board[row][col]
+                if board[row][col] is 0:
+                    emptySlots += emptySlots + 1
+
+        return -(0.45 * score + 0.55 * emptySlots)
 
 
 # part C
