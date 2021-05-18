@@ -117,7 +117,7 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         return monotonicity
 
     def get_monotonicity_weights(self, board):
-        weights = [0.135, 0.121, 0.102, 0.0999,
+        weights = [0.165, 0.121, 0.102, 0.0999,
                    0.0997, 0.088, 0.076, 0.0724,
                    0.0606, 0.0562, 0.0371, 0.0161,
                    0.0125, 0.0099, 0.0057, 0.0033]
@@ -169,11 +169,18 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         return max(max(board))
 
     def heuristic(self, board):
+        """
         monotonicityFact = 10
         smoothnessFact = 10
         emptyFact = 25
         highestFact = 10
         directionFact = 15
+        """
+        monotonicityFact = 0.25
+        smoothnessFact = 0.15
+        emptyFact = 0.35
+        highestFact = 0.1
+        directionFact = 0.15
 
         # calc monotonicity (snake)
         # monotonicity = self.get_monotonicity(board)
@@ -190,15 +197,16 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
 
         new_bonus = self.calc_bonus(params)
         print("Monotonicity bonus = " + str(monotonicity) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(empty_slots) + " Direction = " + str(direction))
-
-        return new_bonus
+        print("Bonus = " + str(new_bonus))
+        return new_bonus / 10
 
     def get_move(self, board, time_limit) -> Move:
         optional_moves_score = {}
         for move in Move:
             new_board, done, score = commands[move](board)
             if done:
-                optional_moves_score[move] = 1.4 * self.heuristic(board) + 1.4 * score
+                # optional_moves_score[move] = 1.4 * self.heuristic(board) + 1.4 * score
+                optional_moves_score[move] = 0.15 * self.heuristic(board) + 0.85 * score
 
         return max(optional_moves_score, key=optional_moves_score.get)
 
