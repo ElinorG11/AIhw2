@@ -79,7 +79,7 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
     """ 
     Calculates how much the grid is uniforaml - if all the cells
     are equal, the function will return 0. Otherwise, it will return 
-    the inverse of sum of all differences (in abolute value) between neighbours in the grid.
+    the inverse of sum of all differences (in absolute value) between neighbours in the grid.
     """
 
     def get_smoothness(self, board):
@@ -92,7 +92,7 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
                     if col + 1 < len(board):
                         smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[row][col + 1]))
 
-        return -smoothness/2
+        return -smoothness
 
     """ 
     Bonus for tiles in monotonic structure where highest value is in one of the corners.
@@ -115,6 +115,25 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
                 monotonicity = monotonicity - 20
 
         return monotonicity
+
+    def get_monotonicity_weights(self, board):
+        weights = [0.135, 0.121, 0.102, 0.0999,
+                   0.0997, 0.088, 0.076, 0.0724,
+                   0.0606, 0.0562, 0.0371, 0.0161,
+                   0.0125, 0.0099, 0.0057, 0.0033]
+
+        cells = []
+
+        for row in range(len(board)):
+            for col in range(len(board)):
+                cells.append(board[row][col])
+
+        score = []
+
+        for num1, num2 in zip(weights, cells):
+            score.append(num1 * num2)
+
+        return sum(score)
 
     """ 
     Calculates how much the grid is organized in some direction. 
@@ -151,13 +170,14 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
 
     def heuristic(self, board):
         monotonicityFact = 10
-        smoothnessFact = 1
+        smoothnessFact = 10
         emptyFact = 25
         highestFact = 10
         directionFact = 15
 
         # calc monotonicity (snake)
-        monotonicity = self.get_monotonicity(board)
+        # monotonicity = self.get_monotonicity(board)
+        monotonicity = self.get_monotonicity_weights(board)
         # calc smoothness
         smoothness = self.get_smoothness(board)
         # calc empty slots
@@ -169,9 +189,9 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         params = [monotonicityFact, monotonicity, smoothnessFact, smoothness, emptyFact, empty_slots, directionFact, direction, highestFact, max_tile]
 
         new_bonus = self.calc_bonus(params)
-        # print("Monotonicity bonus = " + str(3) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(empty_slots) + " Direction = " + str(direction))
+        print("Monotonicity bonus = " + str(monotonicity) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(empty_slots) + " Direction = " + str(direction))
 
-        return new_bonus / 10
+        return new_bonus
 
     def get_move(self, board, time_limit) -> Move:
         optional_moves_score = {}
