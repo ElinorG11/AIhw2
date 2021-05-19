@@ -170,8 +170,8 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         params = [monotonicityFact, monotonicity, smoothnessFact, smoothness, emptyFact, empty_slots, directionFact, direction, highestFact, max_tile]
 
         new_bonus = self.calc_bonus(params)
-        print("Monotonicity bonus = " + str(monotonicity) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(empty_slots) + " Direction = " + str(direction))
-        print("Bonus = " + str(new_bonus))
+        # print("Monotonicity bonus = " + str(monotonicity) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(empty_slots) + " Direction = " + str(direction))
+        # print("Bonus = " + str(new_bonus))
         return new_bonus / 10
 
     def get_move(self, board, time_limit) -> Move:
@@ -292,9 +292,8 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         for row in range(len(board)):
             for col in range(len(board)):
                 score += board[row][col]
-                if board[row][col] is 0:
-                    emptySlots += emptySlots + 1
-
+                if board[row][col] == 0:
+                    emptySlots = emptySlots + 1
         return 0.45 * score + 0.55 * emptySlots
 
     def is_goal(board) -> bool:
@@ -330,18 +329,18 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             if val == float('-inf'):
                 break
             last_iteration_time = time.time() - iteration_start_time
-            next_iteration_max_time = 4 * last_iteration_time
+            next_iteration_max_time = 8 * last_iteration_time
             time_until_now = time.time() - time_start
         return a, b
 
-    def heuristic(selfself, board):
+    def heuristic(self, board):
         score = 0
         emptySlots = 0
         for row in range(len(board)):
             for col in range(len(board)):
                 score += board[row][col]
                 if board[row][col] is 0:
-                    emptySlots += emptySlots + 1
+                    emptySlots = emptySlots + 1
 
         return -(0.45 * score + 0.55 * emptySlots)
 
