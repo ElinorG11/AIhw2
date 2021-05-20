@@ -263,7 +263,6 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
                     best_move = (i, j)
             return cur_min, best_move
 
-
     def get_empty_indices(self, board):
         empty = []
         for i in range(0, 4):
@@ -325,7 +324,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         board = state[0]
         agentToMove = state[1]
         if depth == 0:
-         return self.heuristic(state[0]), None
+            return self.heuristic(state[0]), None
         if self.is_goal(state):
             return float('-inf'), None
         turn = agentToMove
@@ -387,19 +386,20 @@ class ABMovePlayer(AbstractMovePlayer):
         AbstractMovePlayer.__init__(self)
         self.depth_sums = 0
         self.move_count = 0
+        self.timeout = 0
 
     def get_move(self, board, time_limit) -> Move:
-
         time_start = time.time()
         depth = 1
         val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
                                              float("-inf"), float("inf"))
         # baseline time that we can use to estimate the next depth time
         last_iteration_time = time.time() - time_start
+        iteration_start_time = time.time()
         node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
         next_iteration_max_time = node_ratio * last_iteration_time
         time_until_now = time.time() - time_start
-        while time_until_now + next_iteration_max_time < time_limit:
+        while node_ratio * (time.time() - iteration_start_time) < time_limit - (time.time() - time_start):
             depth += 1
             print("curr depth is: " + str(depth))
             iteration_start_time = time.time()
@@ -473,7 +473,7 @@ class ABMovePlayer(AbstractMovePlayer):
         empty_score = 0
         for row in range(len(board)):
             for col in range(len(board)):
-                filled_score += (board[row][col]**2) * filled_score_map[row][col]
+                filled_score += (board[row][col] ** 2) * filled_score_map[row][col]
                 if board[row][col] == 0:
                     empty_score = empty_score + 256 * empty_score_map[row][col]
 
