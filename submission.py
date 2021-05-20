@@ -194,6 +194,8 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
+        self.depth_sums = 0
+        self.move_count = 0
 
     def get_move(self, board, time_limit) -> Move:
         time_start = time.time()
@@ -224,6 +226,9 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
             node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
             next_iteration_max_time = node_ratio * last_iteration_time
             time_until_now = time.time() - time_start
+        self.move_count += 1
+        self.depth_sums += depth
+        print("current average depth: " + str(self.depth_sums / self.move_count))
         return max_move
 
     def MinimaxSearch(self, state, agent, depth):
@@ -379,7 +384,8 @@ class ABMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
-        # TODO: add here if needed
+        self.depth_sums = 0
+        self.move_count = 0
 
     def get_move(self, board, time_limit) -> Move:
 
@@ -394,7 +400,7 @@ class ABMovePlayer(AbstractMovePlayer):
         time_until_now = time.time() - time_start
         while time_until_now + next_iteration_max_time < time_limit:
             depth += 1
-            print("curr depth is: "+str(depth))
+            print("curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
@@ -407,8 +413,11 @@ class ABMovePlayer(AbstractMovePlayer):
             last_iteration_time = time.time() - iteration_start_time
             node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
             next_iteration_max_time = node_ratio * last_iteration_time
+            print("nr: " + str(node_ratio) + " lit: " + str(last_iteration_time) + " nimt: " + str(
+                next_iteration_max_time))
             time_until_now = time.time() - time_start
-            print("nimt: "+str(next_iteration_max_time))
+        self.move_count += 1
+        self.depth_sums += depth
         return max_move
 
     # TODO: add here helper functions in class, if needed
@@ -463,9 +472,9 @@ class ABMovePlayer(AbstractMovePlayer):
         empty_score = 0
         for row in range(len(board)):
             for col in range(len(board)):
-                filled_score += board[row][col] * filled_score_map[row][col]
+                filled_score += (board[row][col]**2) * filled_score_map[row][col]
                 if board[row][col] == 0:
-                    empty_score = empty_score + 16 * empty_score_map[row][col]
+                    empty_score = empty_score + 256 * empty_score_map[row][col]
 
         return 0.45 * filled_score + 0.55 * empty_score
 
