@@ -201,7 +201,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         time_start = time.time()
         depth = 1
         max_val, max_move = self.MinimaxSearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth)
-        last_iteration_time = time.time() - time_start
+        iteration_start_time = time.time()
         """we have 4 moves for our player and up to 15 placements of the new '2 tile' for the computer
         so the max branching factor is 15.
         We now assume a tree where all nodes have a 15 branching factor (upper bound)
@@ -209,10 +209,8 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         and the number of nodes in such a tree with depth d+1. this allows us to bind the time
         needed for the next iteration by multiplying the time of the previous calculation with a scale
         corresponding to the number of nodes in the new tree (in the next iteration)"""
-        node_ratio = (16 ** (depth + 2) - 1) / (16 ** (depth + 1) - 1)
-        next_iteration_max_time = node_ratio * last_iteration_time
-        time_until_now = time.time() - time_start
-        while time_until_now + next_iteration_max_time < time_limit:
+        node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
+        while node_ratio * (time.time() - iteration_start_time) < time_limit - (time.time() - time_start):
             depth += 1
             iteration_start_time = time.time()
             last_good_move = max_move
@@ -222,10 +220,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
             if val == float('-inf'):
                 max_move = last_good_move
                 break
-            last_iteration_time = time.time() - iteration_start_time
-            node_ratio = (16 ** (depth + 2) - 1) / (16 ** (depth + 1) - 1)
-            next_iteration_max_time = node_ratio * last_iteration_time
-            time_until_now = time.time() - time_start
+            node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
         self.move_count += 1
         self.depth_sums += depth
         print("current average depth: " + str(self.depth_sums / self.move_count))
@@ -301,10 +296,12 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         depth = 1
         min_val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
         last_iteration_time = time.time() - time_start
+        iteration_start_time = time.time()
         node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
         next_iteration_max_time = node_ratio * last_iteration_time
         time_until_now = time.time() - time_start
-        while time_until_now + next_iteration_max_time < time_limit:
+        while node_ratio * (time.time() - iteration_start_time) < time_limit - (time.time() - time_start):
+        #while time_until_now + next_iteration_max_time < time_limit:
             depth += 1
             iteration_start_time = time.time()
             last_good_indices = min_move
