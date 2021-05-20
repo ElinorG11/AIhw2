@@ -86,7 +86,7 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         smoothness = 0
         for row in range(len(board)):
             for col in range(len(board)):
-                if board[row][col] is not 0:
+                if board[row][col]!= 0:
                     if row + 1 < len(board):
                         smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[row + 1][col]))
                     if col + 1 < len(board):
@@ -97,6 +97,7 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
     """ 
     Bonus for tiles in monotonic structure where highest value is in one of the corners.
     """
+
     def get_monotonicity_weights(self, board):
         weights = [0.165, 0.121, 0.102, 0.0999,
                    0.0997, 0.088, 0.076, 0.0724,
@@ -167,7 +168,8 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
 
         max_tile = self.highestTile(board)
 
-        params = [monotonicityFact, monotonicity, smoothnessFact, smoothness, emptyFact, empty_slots, directionFact, direction, highestFact, max_tile]
+        params = [monotonicityFact, monotonicity, smoothnessFact, smoothness, emptyFact, empty_slots, directionFact,
+                  direction, highestFact, max_tile]
 
         new_bonus = self.calc_bonus(params)
         # print("Monotonicity bonus = " + str(monotonicity) + " Smoothness = " + str(smoothness) + " Empty-slots = " + str(empty_slots) + " Direction = " + str(direction))
@@ -243,7 +245,7 @@ def search(state, depth, agent):
                 prev_state = [[state[i][j] for i in range(len(state))] for j in range(len(state))]
 
                 # change the board
-                if state[i][j] is 0:
+                if state[i][j] == 0:
                     state[i][j] += 2
                     cur_minimax_val = minimax_search(state, depth - 1, agent)
                     state = [[prev_state[i][j] for i in range(len(state))] for j in range(len(state))]
@@ -339,7 +341,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         for row in range(len(board)):
             for col in range(len(board)):
                 score += board[row][col]
-                if board[row][col] is 0:
+                if board[row][col] == 0:
                     emptySlots = emptySlots + 1
 
         return -(0.45 * score + 0.55 * emptySlots)
@@ -357,10 +359,101 @@ class ABMovePlayer(AbstractMovePlayer):
         # TODO: add here if needed
 
     def get_move(self, board, time_limit) -> Move:
-        # TODO: erase the following line and implement this function.
-        raise NotImplementedError
+
+        time_start = time.time()
+        depth = 1
+        val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
+                                             float("-inf"), float("inf"))
+        # baseline time that we can use to estimate the next depth time
+        last_iteration_time = time.time() - time_start
+        # next iteration will take between 5X and 4X the time since we have added another depth level
+        node_ratio = (4 ** (depth + 2) - 1) / (4 ** (depth + 1) - 1)
+        next_iteration_max_time = node_ratio * last_iteration_time
+        time_until_now = time.time() - time_start
+        while time_until_now + next_iteration_max_time < time_limit:
+            depth += 1
+            iteration_start_time = time.time()
+            last_good_move = max_move
+            val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
+                                                  float("-inf"), float("inf"))
+            if val == float('inf'):
+                break
+            if val == float('-inf'):
+                max_move = last_good_move
+                break
+            last_iteration_time = time.time() - iteration_start_time
+            node_ratio = (4 ** (depth + 2) - 1) / (4 ** (depth + 1) - 1)
+            next_iteration_max_time = node_ratio * last_iteration_time
+            time_until_now = time.time() - time_start
+        return max_move
 
     # TODO: add here helper functions in class, if needed
+    def ABminimaxsearch(self, state, agent, depth, alpha, beta):
+        board = state[0]
+        curr_turn = state[1]
+        if self.is_goal(state) or depth == 0:
+            return self.basic_hueristic(board), None
+        turn = curr_turn
+        best_move = None
+        if turn == agent:
+            cur_max = float("-inf")
+            for move in Move:
+                new_board, valid, score = commands[move](list(board))
+                if valid:
+                    child_state = (new_board, Turn.INDEX_PLAYER_TURN)
+                    v, child_move = self.ABminimaxsearch(child_state, agent, depth - 1, alpha, beta)
+                    if v >= cur_max:
+                        cur_max = v
+                        best_move = move
+                    alpha = max(cur_max, alpha)
+                    if cur_max >= beta:
+                        return float("inf"), move
+            return cur_max, best_move
+        else:
+            cur_min = float("-inf")
+            for (i, j, v) in self.get_empty_indexes(board):
+                new_board = (list(board))
+                new_board[i][j] = v
+                child_state = (new_board, Turn.MOVE_PLAYER_TURN)
+                v, child_move = self.ABminimaxsearch(child_state, agent, depth - 1, alpha, beta)
+                if v <= cur_min:
+                    cur_min = v
+                    best_move = (i, j, v)
+                beta = min(cur_min, beta)
+                if cur_min <= alpha:
+                    return float("-inf"), (i, j, v)
+            return cur_min, best_move
+
+    def basic_hueristic(self, board):
+        filled_score_map = [[1, 0.5, 0.5, 1],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [1, 0.5, 0.5, 1]]
+        empty_score_map = [[0, 0.5, 0.5, 0],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0, 0.5, 0.5, 0]]
+        filled_score = 0
+        empty_score = 0
+        for row in range(len(board)):
+            for col in range(len(board)):
+                filled_score += board[row][col] * filled_score_map[row][col]
+                if board[row][col] == 0:
+                    empty_score = empty_score + 16 * empty_score_map[row][col]
+
+        return 0.45 * filled_score + 0.55 * empty_score
+
+    def is_goal(self, state) -> bool:
+        return logic.game_state(state[0]) == 'lose'
+
+    def get_empty_indexes(self, board):
+        empty = []
+        for i in range(0, 4):
+            for j in range(0, 4):
+                if board[i][j] == 0:
+                    empty.append((i, j, 2))
+                    empty.append((i, j, 4))
+        return empty
 
 
 # part D
