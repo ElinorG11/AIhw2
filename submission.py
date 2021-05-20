@@ -185,77 +185,6 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         return max(optional_moves_score, key=optional_moves_score.get)
 
 
-def minimax_search(state, depth, agent):
-    if depth == 0 or MiniMaxMovePlayer.is_goal(board=state) is True:
-        if agent == Turn.MOVE_PLAYER_TURN:
-            minimax_agent = MiniMaxMovePlayer()
-            return minimax_agent.heuristic(state)
-        else:
-            minimax_agent = MiniMaxIndexPlayer()
-            return minimax_agent.heuristic(state)
-    if agent == Turn.MOVE_PLAYER_TURN:
-        curr_max = float('-inf')
-        for move in Move:
-            # store previous state of the board
-            prev_state = [[state[i][j] for i in range(4)] for j in range(4)]
-            # change the board
-            new_state, valid, score = commands[move](state)
-            if valid:
-                value = minimax_search(new_state, depth - 1, agent)
-                state = [[prev_state[i][j] for i in range(4)] for j in range(4)]
-                curr_max = max(curr_max, value)
-        return curr_max
-    else:
-        curr_min = float('inf')
-        for move in Move:
-            # store previous state of the board
-            prev_state = [[state[i][j] for i in range(4)] for j in range(4)]
-            # change the board
-            new_state, valid, score = commands[move](state)
-            if valid:
-                value = minimax_search(new_state, depth - 1, agent)
-                state = [[prev_state[i][j] for i in range(4)] for j in range(4)]
-                curr_min = min(curr_min, value)
-        return curr_min
-
-
-def search(state, depth, agent):
-    if agent == Turn.MOVE_PLAYER_TURN:
-        max_value, best_move = float('-inf'), None
-        for move in Move:
-            # store previous state of the board
-            prev_state = [[state[i][j] for i in range(4)] for j in range(4)]
-
-            # change the board
-            new_state, valid, score = commands[move](state)
-
-            if valid:
-                cur_minimax_val = minimax_search(new_state, depth - 1, agent)
-                state = [[prev_state[i][j] for i in range(4)] for j in range(4)]
-
-                if cur_minimax_val >= max_value:
-                    max_value = cur_minimax_val
-                    best_move = move
-        return best_move, max_value
-    else:
-        min_value, a, b = float('inf'), 0, 0
-        for i in range(len(state)):
-            for j in range(len(state)):
-                # store previous state of the board
-                prev_state = [[state[i][j] for i in range(len(state))] for j in range(len(state))]
-
-                # change the board
-                if state[i][j] == 0:
-                    state[i][j] += 2
-                    cur_minimax_val = minimax_search(state, depth - 1, agent)
-                    state = [[prev_state[i][j] for i in range(len(state))] for j in range(len(state))]
-
-                    if cur_minimax_val <= min_value:
-                        min_value = cur_minimax_val
-                        a, b = i, j
-        return min_value, a, b
-
-
 # part B
 class MiniMaxMovePlayer(AbstractMovePlayer):
     """MiniMax Move Player,
@@ -271,7 +200,14 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         depth = 1
         max_val, max_move = self.MinimaxSearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth)
         last_iteration_time = time.time() - time_start
-        node_ratio = (28 ** (depth + 2) - 1) / (28 ** (depth + 1) - 1)
+        """we have 4 moves for our player and up to 15 placements of the new '2 tile' for the computer
+        so the max branching factor is 15.
+        We now assume a tree where all nodes have a 15 branching factor (upper bound)
+        the node ratio is the ratio between the number of nodes in such a tree with depth d
+        and the number of nodes in such a tree with depth d+1. this allows us to bind the time
+        needed for the next iteration by multiplying the time of the previous calculation with a scale
+        corresponding to the number of nodes in the new tree (in the next iteration)"""
+        node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
         next_iteration_max_time = node_ratio * last_iteration_time
         time_until_now = time.time() - time_start
         while time_until_now + next_iteration_max_time < time_limit:
@@ -285,7 +221,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
                 max_move = last_good_move
                 break
             last_iteration_time = time.time() - iteration_start_time
-            node_ratio = (28 ** (depth + 2) - 1) / (28 ** (depth + 1) - 1)
+            node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
             next_iteration_max_time = node_ratio * last_iteration_time
             time_until_now = time.time() - time_start
         return max_move
@@ -358,7 +294,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         depth = 1
         min_val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
         last_iteration_time = time.time() - time_start
-        node_ratio = (28 ** (depth + 2) - 1) / (28 ** (depth + 1) - 1)
+        node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
         next_iteration_max_time = node_ratio * last_iteration_time
         time_until_now = time.time() - time_start
         while time_until_now + next_iteration_max_time < time_limit:
@@ -372,7 +308,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             if val == float('-inf'):
                 break
             last_iteration_time = time.time() - iteration_start_time
-            node_ratio = (28 ** (depth + 2) - 1) / (28 ** (depth + 1) - 1)
+            node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
             next_iteration_max_time = node_ratio * last_iteration_time
             time_until_now = time.time() - time_start
         return min_move[0], min_move[1]
@@ -449,12 +385,12 @@ class ABMovePlayer(AbstractMovePlayer):
                                              float("-inf"), float("inf"))
         # baseline time that we can use to estimate the next depth time
         last_iteration_time = time.time() - time_start
-        # next iteration will take between 5X and 4X the time since we have added another depth level
-        node_ratio = (4 ** (depth + 2) - 1) / (4 ** (depth + 1) - 1)
+        node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
         next_iteration_max_time = node_ratio * last_iteration_time
         time_until_now = time.time() - time_start
         while time_until_now + next_iteration_max_time < time_limit:
             depth += 1
+            print("curr depth is: "+str(depth))
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
@@ -465,9 +401,10 @@ class ABMovePlayer(AbstractMovePlayer):
                 max_move = last_good_move
                 break
             last_iteration_time = time.time() - iteration_start_time
-            node_ratio = (28 ** (depth + 2) - 1) / (28 ** (depth + 1) - 1)
+            node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
             next_iteration_max_time = node_ratio * last_iteration_time
             time_until_now = time.time() - time_start
+            print("nimt: "+str(next_iteration_max_time))
         return max_move
 
     # TODO: add here helper functions in class, if needed
