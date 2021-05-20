@@ -306,7 +306,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
                     val, new_move = self.MinimaxSearch(new_state, agent, depth - 1)
                     if val >= curr_max:
                         curr_max = val
-                        best_move = move  # Ask Ron 'bout it
+                        best_move = move
             return curr_max, best_move
         else:
             cur_min = float("inf")
@@ -375,7 +375,6 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             node_ratio = (28 ** (depth + 2) - 1) / (28 ** (depth + 1) - 1)
             next_iteration_max_time = node_ratio * last_iteration_time
             time_until_now = time.time() - time_start
-            print(min_move)
         return min_move[0], min_move[1]
 
     def MinimaxSearch(self, state, agent, depth):
@@ -390,7 +389,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             for (i, j) in self.get_empty_indices(board):
                 new_board = (list(board))
                 new_board[i][j] = 2
-                new_state = (new_board, Turn.MOVE_PLAYER_TURN)
+                new_state = (new_board, Turn.INDEX_PLAYER_TURN)
                 val, child_move = self.MinimaxSearch(new_state, agent, depth - 1)
                 if val <= cur_min:
                     cur_min = val
@@ -401,11 +400,11 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             for move in Move:
                 new_board, valid, score = commands[move](list(board))
                 if valid:
-                    new_state = (new_board, Turn.INDEX_PLAYER_TURN)
+                    new_state = (new_board, Turn.MOVE_PLAYER_TURN)
                     val, new_move = self.MinimaxSearch(new_state, agent, depth - 1)
                     if val >= curr_max:
                         curr_max = val
-                        best_move = move  # Ask Ron 'bout it
+                        best_move = move
             return curr_max, best_move
 
     def get_empty_indices(self, board):
