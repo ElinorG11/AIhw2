@@ -209,7 +209,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         and the number of nodes in such a tree with depth d+1. this allows us to bind the time
         needed for the next iteration by multiplying the time of the previous calculation with a scale
         corresponding to the number of nodes in the new tree (in the next iteration)"""
-        node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
+        node_ratio = (16 ** (depth + 2) - 1) / (16 ** (depth + 1) - 1)
         next_iteration_max_time = node_ratio * last_iteration_time
         time_until_now = time.time() - time_start
         while time_until_now + next_iteration_max_time < time_limit:
@@ -223,7 +223,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
                 max_move = last_good_move
                 break
             last_iteration_time = time.time() - iteration_start_time
-            node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
+            node_ratio = (16 ** (depth + 2) - 1) / (16 ** (depth + 1) - 1)
             next_iteration_max_time = node_ratio * last_iteration_time
             time_until_now = time.time() - time_start
         self.move_count += 1
@@ -262,6 +262,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
                     cur_min = val
                     best_move = (i, j)
             return cur_min, best_move
+
 
     def get_empty_indices(self, board):
         empty = []
