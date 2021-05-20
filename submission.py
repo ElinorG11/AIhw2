@@ -86,7 +86,7 @@ class ImprovedGreedyMovePlayer(AbstractMovePlayer):
         smoothness = 0
         for row in range(len(board)):
             for col in range(len(board)):
-                if board[row][col]!= 0:
+                if board[row][col] != 0:
                     if row + 1 < len(board):
                         smoothness += abs(self.calc_log(board[row][col]) - self.calc_log(board[row + 1][col]))
                     if col + 1 < len(board):
@@ -375,7 +375,7 @@ class ABMovePlayer(AbstractMovePlayer):
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
-                                                  float("-inf"), float("inf"))
+                                                 float("-inf"), float("inf"))
             if val == float('inf'):
                 break
             if val == float('-inf'):
@@ -452,7 +452,7 @@ class ABMovePlayer(AbstractMovePlayer):
             for j in range(0, 4):
                 if board[i][j] == 0:
                     empty.append((i, j, 2))
-                    empty.append((i, j, 4))
+                    # empty.append((i, j, 4))
         return empty
 
 
