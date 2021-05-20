@@ -89,7 +89,7 @@ class CustomGame(GameGrid):
                     print(f'Time up for player {Turn.INDEX_PLAYER_TURN}')
                     break
                 if indices is None:
-                    print("illegal indices " + str(indices))
+                    print("illegal indices ")
                     break
 
                 i, j = indices
@@ -113,4 +113,4 @@ class CustomGame(GameGrid):
         max_val = max(max(row) for row in self.matrix)
         print(f'Game Over with max value = {max_val} and Total score = {self.total_score}')
         # See the final board before it disappears
-        time.sleep(5)
+        time.sleep(3)
