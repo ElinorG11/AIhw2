@@ -229,8 +229,10 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
     def MinimaxSearch(self, state, agent, depth):
         board = state[0]
         agentToMove = state[1]
-        if self.is_goal(state) or depth == 0:
+        if depth == 0:
             return self.heuristic(state[0]), None
+        if self.is_goal(state):
+            return float('-inf'), None
         turn = agentToMove
         best_move = None
         if turn == agent:
@@ -311,13 +313,15 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
             next_iteration_max_time = node_ratio * last_iteration_time
             time_until_now = time.time() - time_start
-        return min_move[0], min_move[1]
+        return min_move
 
     def MinimaxSearch(self, state, agent, depth):
         board = state[0]
         agentToMove = state[1]
-        if self.is_goal(state) or depth == 0:
-            return self.heuristic(state[0]), None
+        if depth == 0:
+         return self.heuristic(state[0]), None
+        if self.is_goal(state):
+            return float('-inf'), None
         turn = agentToMove
         best_move = None
         if turn == agent:
@@ -332,7 +336,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
                     best_move = (i, j)
             return curr_max, best_move
         else:
-            cur_min = float("inf")
+            cur_min = float('inf')
             for move in Move:
                 new_board, valid, score = commands[move](list(board))
                 if valid:
@@ -411,8 +415,10 @@ class ABMovePlayer(AbstractMovePlayer):
     def ABminimaxsearch(self, state, agent, depth, alpha, beta):
         board = state[0]
         curr_turn = state[1]
-        if self.is_goal(state) or depth == 0:
+        if depth == 0:
             return self.basic_hueristic(board), None
+        if self.is_goal(state):
+            return float('-inf'), None
         turn = curr_turn
         best_move = None
         if turn == agent:
