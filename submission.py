@@ -391,12 +391,22 @@ class ABMovePlayer(AbstractMovePlayer):
         val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
                                              float("-inf"), float("inf"))
         # baseline time that we can use to estimate the next depth time
-        last_iteration_time = time.time() - time_start
-        iteration_start_time = time.time()
-        node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
-        next_iteration_max_time = node_ratio * last_iteration_time
-        time_until_now = time.time() - time_start
-        while node_ratio * (time.time() - iteration_start_time) < time_limit - (time.time() - time_start):
+        curr_iter_time = time.time() - time_start
+        """
+        since different agents have different branching factors (upto 4 for player, upto 14-15 for computer)
+        then to effectively bound the time we look at the time from the previous calculation for the
+        same agent (a.k.a 2 iterations before hand) and multiply that by a maximum branching factor of 
+        10*4 = 40. 
+        For small depth-numbers, node_ratio may be bigger than this, since there may be 11-15 open spaces and all the
+        non-leaf nodes in the tree effect the total number of nodes in the tree more significantly but considering
+        the fact that for small depth numbers we won't timeout anyway (since timout>=1 is given) 
+        then we allow ourselves to make this rounded down estimate
+        
+        to be completely safe we can choose 15*4, but our testing works consistently with 10*4 so we use it
+        """
+        node_ratio = 4*10
+        prev_iter_time = curr_iter_time
+        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start):
             depth += 1
             print("curr depth is: " + str(depth))
             iteration_start_time = time.time()
@@ -408,12 +418,12 @@ class ABMovePlayer(AbstractMovePlayer):
             if val == float('-inf'):
                 max_move = last_good_move
                 break
-            last_iteration_time = time.time() - iteration_start_time
-            node_ratio = (15 ** (depth + 2) - 1) / (15 ** (depth + 1) - 1)
-            next_iteration_max_time = node_ratio * last_iteration_time
-            print("nr: " + str(node_ratio) + " lit: " + str(last_iteration_time) + " nimt: " + str(
-                next_iteration_max_time))
-            time_until_now = time.time() - time_start
+            next_iteration_max_time = node_ratio * prev_iter_time
+            prev_iter_time = curr_iter_time
+            curr_iter_time = time.time() - iteration_start_time
+            print(" prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(curr_iter_time) + " next max "
+                                                                                                          "time: " +
+                  str(next_iteration_max_time))
         self.move_count += 1
         self.depth_sums += depth
         return max_move
