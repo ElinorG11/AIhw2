@@ -200,7 +200,6 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         max_val, max_move = self.MinimaxSearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth)
         curr_iter_time = time.time() - time_start
         node_ratio = 4*15
-        prev_iter_time = curr_iter_time
         next_iter_time = node_ratio * curr_iter_time
         while node_ratio * next_iter_time < time_limit - (time.time() - time_start):
             depth += 1
@@ -291,7 +290,6 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         min_val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
         curr_iter_time = time.time() - time_start
         node_ratio = 4 * 15
-        prev_iter_time = curr_iter_time
         next_iter_time = node_ratio * curr_iter_time
         while node_ratio * next_iter_time < time_limit - (time.time() - time_start):
             depth += 1
