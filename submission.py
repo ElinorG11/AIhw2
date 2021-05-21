@@ -200,8 +200,8 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         max_val, max_move = self.MinimaxSearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth)
         curr_iter_time = time.time() - time_start
         node_ratio = 4*15
-        next_iter_time = node_ratio * curr_iter_time
-        while node_ratio * next_iter_time < time_limit - (time.time() - time_start):
+        prev_iter_time = curr_iter_time
+        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start):
             depth += 1
             iteration_start_time = time.time()
             last_good_move = max_move
@@ -211,9 +211,11 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
             if val == float('-inf'):
                 max_move = last_good_move
                 break
+            next_iteration_max_time = node_ratio * prev_iter_time
             prev_iter_time = curr_iter_time
             curr_iter_time = time.time() - iteration_start_time
-            next_iter_time = node_ratio * (prev_iter_time + curr_iter_time)
+            print(" prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(curr_iter_time) + " next max "
+                                                                            "time: " + str(next_iteration_max_time))
         self.move_count += 1
         self.depth_sums += depth
         print("current average depth: " + str(self.depth_sums / self.move_count))
@@ -290,8 +292,8 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         min_val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
         curr_iter_time = time.time() - time_start
         node_ratio = 4 * 15
-        next_iter_time = node_ratio * curr_iter_time
-        while node_ratio * next_iter_time < time_limit - (time.time() - time_start):
+        prev_iter_time = curr_iter_time
+        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start):
             depth += 1
             iteration_start_time = time.time()
             last_good_indices = min_move
@@ -303,7 +305,6 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
                 break
             prev_iter_time = curr_iter_time
             curr_iter_time = time.time() - iteration_start_time
-            next_iter_time = node_ratio * (prev_iter_time + curr_iter_time)
         return min_move
 
     def MinimaxSearch(self, state, agent, depth):
