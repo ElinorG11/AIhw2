@@ -57,8 +57,10 @@ class CustomGame(GameGrid):
                 time_diff = end - start
                 print("current average depth (Player): " + str(self.move_player.depth_sums / self.move_player.move_count))
                 #print(time_diff)
+                #print("current average depth: " + str(self.move_player.depth_sums / self.move_player.move_count))
                 if time_diff > self.move_time_limit:
                     print(f'Time up for player {Turn.MOVE_PLAYER_TURN}')
+                    print("time diff = " + str(time_diff))
                     break
 
                 if move is None:

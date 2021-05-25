@@ -199,9 +199,9 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         depth = 1
         max_val, max_move = self.MinimaxSearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth)
         curr_iter_time = time.time() - time_start
-        node_ratio = 4*10
+        node_ratio = 4*15
         prev_iter_time = curr_iter_time
-        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start):
+        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
             print("(Player) curr depth is: " + str(depth))
             iteration_start_time = time.time()
@@ -244,13 +244,14 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         else:
             cur_min = float("inf")
             for (i, j) in self.get_empty_indices(board):
-                new_board = (list(board))
-                new_board[i][j] = 2
-                new_state = (new_board, Turn.MOVE_PLAYER_TURN)
+                #new_board = (list(board))
+                board[i][j] = 2
+                new_state = (board, Turn.MOVE_PLAYER_TURN)
                 val, child_move = self.MinimaxSearch(new_state, agent, depth - 1)
                 if val <= cur_min:
                     cur_min = val
                     best_move = (i, j)
+                board[i][j] = 0
             return cur_min, best_move
 
     def get_empty_indices(self, board):
@@ -294,9 +295,9 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         depth = 1
         min_val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
         curr_iter_time = time.time() - time_start
-        node_ratio = 4 * 10
+        node_ratio = 4 * 15
         prev_iter_time = curr_iter_time
-        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start):
+        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
             print("(Comp) curr depth is: " + str(depth))
             iteration_start_time = time.time()
@@ -330,13 +331,14 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         if turn == agent:
             curr_max = float('-inf')
             for (i, j) in self.get_empty_indices(board):
-                new_board = (list(board))
-                new_board[i][j] = 2
-                new_state = (new_board, Turn.MOVE_PLAYER_TURN)
+                #new_board = (list(board))
+                board[i][j] = 2
+                new_state = (board, Turn.MOVE_PLAYER_TURN)
                 val, child_move = self.MinimaxSearch(new_state, agent, depth - 1)
                 if val >= curr_max:
                     curr_max = val
                     best_move = (i, j)
+                board[i][j] = 0
             return curr_max, best_move
         else:
             cur_min = float('inf')
