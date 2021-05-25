@@ -199,7 +199,19 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         depth = 1
         max_val, max_move = self.MinimaxSearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth)
         curr_iter_time = time.time() - time_start
-        node_ratio = 4*15
+        """
+        since different agents have different branching factors (upto 4 for player, upto 14-15 for computer)
+        then to effectively bound the time we look at the time from the previous calculation for the
+        same agent (a.k.a 2 iterations before hand) and multiply that by a maximum branching factor of 
+        10*4 = 40. 
+        For small depth-numbers, node_ratio may be bigger than this, since there may be 11-15 open spaces and all the
+        non-leaf nodes in the tree effect the total number of nodes in the tree more significantly but considering
+        the fact that for small depth numbers we won't timeout anyway (since timout>=1 is given) 
+        then we allow ourselves to make this rounded down estimate
+
+        to be completely safe we can choose 15*4, but our testing works consistently with 10*4 as well
+        """
+        node_ratio = 4 * 15
         prev_iter_time = curr_iter_time
         while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
@@ -216,7 +228,8 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
             prev_iter_time = curr_iter_time
             curr_iter_time = time.time() - iteration_start_time
             print(" prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(curr_iter_time) + " next max "
-                                                                            "time: " + str(next_iteration_max_time))
+                                                                                                          "time: " + str(
+                next_iteration_max_time))
         self.move_count += 1
         self.depth_sums += depth
         return max_move
@@ -233,7 +246,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         if turn == agent:
             curr_max = float('-inf')
             for move in Move:
-                new_board, valid, score = commands[move](list(board))
+                new_board, valid, score = commands[move](self.copy_board(board))
                 if valid:
                     new_state = (new_board, Turn.INDEX_PLAYER_TURN)
                     val, new_move = self.MinimaxSearch(new_state, agent, depth - 1)
@@ -244,14 +257,13 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         else:
             cur_min = float("inf")
             for (i, j) in self.get_empty_indices(board):
-                #new_board = (list(board))
-                board[i][j] = 2
-                new_state = (board, Turn.MOVE_PLAYER_TURN)
+                new_board = self.copy_board(board)
+                new_board[i][j] = 2
+                new_state = (new_board, Turn.MOVE_PLAYER_TURN)
                 val, child_move = self.MinimaxSearch(new_state, agent, depth - 1)
                 if val <= cur_min:
                     cur_min = val
                     best_move = (i, j)
-                board[i][j] = 0
             return cur_min, best_move
 
     def get_empty_indices(self, board):
@@ -274,6 +286,15 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
 
     def is_goal(self, state) -> bool:
         return logic.game_state(state[0]) == 'lose'
+
+    def copy_board(self, board):
+        new_board = []
+        for i in range(4):
+            new_board.append([0] * 4)
+        for i in range(4):
+            for j in range(4):
+                new_board[i][j] = board[i][j]
+        return new_board
 
 
 class MiniMaxIndexPlayer(AbstractIndexPlayer):
@@ -303,7 +324,6 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             iteration_start_time = time.time()
             last_good_indices = min_move
             val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
-            #TODO: we always break on the first iteration, check why
             if val == float('inf'):
                 break
             if val == float('-inf'):
@@ -324,26 +344,25 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         agentToMove = state[1]
         if depth == 0:
             return self.heuristic(state[0]), None
-        if self.is_goal(state):
-            return float('-inf'), None #TODO: check if this should be -inf, and check hy we never reach depth 3
+        if self.is_goal(state):  # can only reach goal as the player and not the index, so always return -inf
+            return float('-inf'), None
         turn = agentToMove
         best_move = None
         if turn == agent:
             curr_max = float('-inf')
             for (i, j) in self.get_empty_indices(board):
-                #new_board = (list(board))
-                board[i][j] = 2
+                new_board = (self.copy_board(board))
+                new_board[i][j] = 2
                 new_state = (board, Turn.MOVE_PLAYER_TURN)
                 val, child_move = self.MinimaxSearch(new_state, agent, depth - 1)
                 if val >= curr_max:
                     curr_max = val
                     best_move = (i, j)
-                board[i][j] = 0
             return curr_max, best_move
         else:
             cur_min = float('inf')
             for move in Move:
-                new_board, valid, score = commands[move](list(board))
+                new_board, valid, score = commands[move](self.copy_board(board))
                 if valid:
                     new_state = (new_board, Turn.INDEX_PLAYER_TURN)
                     val, new_move = self.MinimaxSearch(new_state, agent, depth - 1)
@@ -372,7 +391,16 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
                 if board[row][col] == 0:
                     emptySlots = emptySlots + 1
 
-        return -1*(0.45 * score + 0.55 * emptySlots)
+        return -1 * (0.45 * score + 0.55 * emptySlots)
+
+    def copy_board(self, board):
+        new_board = []
+        for i in range(4):
+            new_board.append([0] * 4)
+        for i in range(4):
+            for j in range(4):
+                new_board[i][j] = board[i][j]
+        return new_board
 
 
 # part C
@@ -395,21 +423,9 @@ class ABMovePlayer(AbstractMovePlayer):
                                              float("-inf"), float("inf"))
         # baseline time that we can use to estimate the next depth time
         curr_iter_time = time.time() - time_start
-        """
-        since different agents have different branching factors (upto 4 for player, upto 14-15 for computer)
-        then to effectively bound the time we look at the time from the previous calculation for the
-        same agent (a.k.a 2 iterations before hand) and multiply that by a maximum branching factor of 
-        10*4 = 40. 
-        For small depth-numbers, node_ratio may be bigger than this, since there may be 11-15 open spaces and all the
-        non-leaf nodes in the tree effect the total number of nodes in the tree more significantly but considering
-        the fact that for small depth numbers we won't timeout anyway (since timout>=1 is given) 
-        then we allow ourselves to make this rounded down estimate
-        
-        to be completely safe we can choose 15*4, but our testing works consistently with 10*4 so we use it
-        """
-        node_ratio = 4*10
+        node_ratio = 4 * 15
         prev_iter_time = curr_iter_time
-        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start):
+        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
             print("(Player) curr depth is: " + str(depth))
             iteration_start_time = time.time()
@@ -444,7 +460,7 @@ class ABMovePlayer(AbstractMovePlayer):
         if turn == agent:
             cur_max = float("-inf")
             for move in Move:
-                new_board, valid, score = commands[move](list(board))
+                new_board, valid, score = commands[move](self.copy_board(board))
                 if valid:
                     child_state = (new_board, Turn.INDEX_PLAYER_TURN)
                     v, child_move = self.ABminimaxsearch(child_state, agent, depth - 1, alpha, beta)
@@ -458,7 +474,7 @@ class ABMovePlayer(AbstractMovePlayer):
         else:
             cur_min = float("inf")
             for (i, j, v) in self.get_empty_indexes(board):
-                new_board = (list(board))
+                new_board = self.copy_board(board)
                 new_board[i][j] = v
                 child_state = (new_board, Turn.MOVE_PLAYER_TURN)
                 v, child_move = self.ABminimaxsearch(child_state, agent, depth - 1, alpha, beta)
@@ -500,6 +516,15 @@ class ABMovePlayer(AbstractMovePlayer):
                     empty.append((i, j, 2))
                     # empty.append((i, j, 4))
         return empty
+
+    def copy_board(self, board):
+        new_board = []
+        for i in range(4):
+            new_board.append([0] * 4)
+        for i in range(4):
+            for j in range(4):
+                new_board[i][j] = board[i][j]
+        return new_board
 
 
 # part D
