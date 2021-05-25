@@ -199,10 +199,11 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         depth = 1
         max_val, max_move = self.MinimaxSearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth)
         curr_iter_time = time.time() - time_start
-        node_ratio = 4*15
+        node_ratio = 4*10
         prev_iter_time = curr_iter_time
         while node_ratio * prev_iter_time < time_limit - (time.time() - time_start):
             depth += 1
+            print("(Player) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.MinimaxSearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth)
@@ -218,7 +219,6 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
                                                                             "time: " + str(next_iteration_max_time))
         self.move_count += 1
         self.depth_sums += depth
-        print("current average depth: " + str(self.depth_sums / self.move_count))
         return max_move
 
     def MinimaxSearch(self, state, agent, depth):
@@ -285,26 +285,37 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
 
     def __init__(self):
         AbstractIndexPlayer.__init__(self)
+        self.depth_sums = 0
+        self.move_count = 0
+        self.timeout = 0
 
     def get_indices(self, board, value, time_limit) -> (int, int):
         time_start = time.time()
         depth = 1
         min_val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
         curr_iter_time = time.time() - time_start
-        node_ratio = 4 * 15
+        node_ratio = 4 * 10
         prev_iter_time = curr_iter_time
         while node_ratio * prev_iter_time < time_limit - (time.time() - time_start):
             depth += 1
+            print("(Comp) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_indices = min_move
             val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
+            #TODO: we always break on the first iteration, check why
             if val == float('inf'):
                 break
             if val == float('-inf'):
                 min_move = last_good_indices
                 break
+            next_iteration_max_time = node_ratio * prev_iter_time
             prev_iter_time = curr_iter_time
             curr_iter_time = time.time() - iteration_start_time
+            print(" prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(curr_iter_time) + " next max "
+                                                                                                          "time: " + str(
+                next_iteration_max_time))
+        self.move_count += 1
+        self.depth_sums += depth
         return min_move
 
     def MinimaxSearch(self, state, agent, depth):
@@ -313,7 +324,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         if depth == 0:
             return self.heuristic(state[0]), None
         if self.is_goal(state):
-            return float('-inf'), None
+            return float('-inf'), None #TODO: check if this should be -inf, and check hy we never reach depth 3
         turn = agentToMove
         best_move = None
         if turn == agent:
@@ -359,7 +370,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
                 if board[row][col] == 0:
                     emptySlots = emptySlots + 1
 
-        return -(0.45 * score + 0.55 * emptySlots)
+        return -1*(0.45 * score + 0.55 * emptySlots)
 
 
 # part C
@@ -398,7 +409,7 @@ class ABMovePlayer(AbstractMovePlayer):
         prev_iter_time = curr_iter_time
         while node_ratio * prev_iter_time < time_limit - (time.time() - time_start):
             depth += 1
-            print("curr depth is: " + str(depth))
+            print("(Player) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
