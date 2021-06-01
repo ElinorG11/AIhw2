@@ -414,7 +414,6 @@ class ABMovePlayer(AbstractMovePlayer):
         AbstractMovePlayer.__init__(self)
         self.depth_sums = 0
         self.move_count = 0
-        self.timeout = 0
 
     def get_move(self, board, time_limit) -> Move:
         time_start = time.time()
@@ -536,13 +535,111 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
-        # TODO: add here if needed
+        self.depth_sums = 0
+        self.move_count = 0
 
     def get_move(self, board, time_limit) -> Move:
-        # TODO: erase the following line and implement this function.
-        raise NotImplementedError
+        time_start = time.time()
+        depth = 1
+        max_val, max_move = self.ExpectimaxSearch((board, Turn.MOVE_PLAYER_TURN, 0), Turn.MOVE_PLAYER_TURN, depth)
+        curr_iter_time = time.time() - time_start
+        """" the timeout logic is the same as before, except that now we add another branching factor of 2 for the
+        tile probability choice. now since we hae 3 different branching factor, to estimate the next max iteration
+        time, we look at two iterations beforehand and multiply by the total branching factor from then, meaning
+        2*4*15"""
+        node_ratio = 2 * 4 * 15
+        prev_iter_time = curr_iter_time
+        prev_prev_iter_time = curr_iter_time
+        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
+            depth += 1
+            print("(Player) curr depth is: " + str(depth))
+            iteration_start_time = time.time()
+            last_good_move = max_move
+            val, max_move = self.ExpectimaxSearch((board, Turn.MOVE_PLAYER_TURN, 0), Turn.MOVE_PLAYER_TURN, depth)
+            if val == float('inf'):
+                break
+            if val == float('-inf'):
+                max_move = last_good_move
+                break
+            next_iteration_max_time = node_ratio * prev_prev_iter_time
+            prev_prev_iter_time = prev_iter_time
+            prev_iter_time = curr_iter_time
+            curr_iter_time = time.time() - iteration_start_time
+            print(" prev prev iter time: " + str(prev_prev_iter_time) + " curr iter time: " + str(
+                curr_iter_time) + " next max time: " + str(next_iteration_max_time))
+        self.move_count += 1
+        self.depth_sums += depth
+        return max_move
 
-    # TODO: add here helper functions in class, if needed
+    def ExpectimaxSearch(self, state, agent, depth):
+        board = state[0]
+        agentToMove = state[1]
+        info_flag = state[2]  # holds 1 if probability state,  0 in move_player state and 2/4 in index state
+        if depth == 0:
+            return self.heuristic(state[0]), None
+        if self.is_goal(state):
+            return float('-inf'), None
+        if info_flag == 1:  # probability state appears before the index player's turn
+            val2, move1 = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
+            val4, move2 = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 4), agent, depth - 1)
+            exp = 0.9 * val2 + 0.1 * val4
+            """since the 2/4 choice is not a move and the initial caller doesn't have a turn of type "random choice"
+             we can return a None best move"""
+            return exp, None
+        turn = agentToMove
+        best_move = None
+        if turn == agent:
+            curr_max = float('-inf')
+            for move in Move:
+                new_board, valid, score = commands[move](self.copy_board(board))
+                if valid:
+                    new_state = (new_board, Turn.INDEX_PLAYER_TURN, 1)  # next state is a probability state
+                    val, new_move = self.ExpectimaxSearch(new_state, agent, depth - 1)
+                    if val >= curr_max:
+                        curr_max = val
+                        best_move = move
+            return curr_max, best_move
+        else:  # index player's turn
+            cur_min = float("inf")
+            for (i, j) in self.get_empty_indices(board):
+                new_board = self.copy_board(board)
+                new_board[i][j] = info_flag
+                new_state = (new_board, Turn.MOVE_PLAYER_TURN, 0)
+                val, child_move = self.ExpectimaxSearch(new_state, agent, depth - 1)
+                if val <= cur_min:
+                    cur_min = val
+                    best_move = (i, j)
+            return cur_min, best_move
+
+    def get_empty_indices(self, board):
+        empty = []
+        for i in range(0, 4):
+            for j in range(0, 4):
+                if board[i][j] == 0:
+                    empty.append((i, j))
+        return empty
+
+    def heuristic(self, board):
+        score = 0
+        emptySlots = 0
+        for row in range(len(board)):
+            for col in range(len(board)):
+                score += board[row][col]
+                if board[row][col] == 0:
+                    emptySlots = emptySlots + 1
+        return 0.45 * score + 0.55 * emptySlots
+
+    def is_goal(self, state) -> bool:
+        return logic.game_state(state[0]) == 'lose'
+
+    def copy_board(self, board):
+        new_board = []
+        for i in range(4):
+            new_board.append([0] * 4)
+        for i in range(4):
+            for j in range(4):
+                new_board[i][j] = board[i][j]
+        return new_board
 
 
 class ExpectimaxIndexPlayer(AbstractIndexPlayer):
@@ -553,13 +650,109 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
 
     def __init__(self):
         AbstractIndexPlayer.__init__(self)
-        # TODO: add here if needed
+        self.depth_sums = 0
+        self.move_count = 0
 
     def get_indices(self, board, value, time_limit) -> (int, int):
-        # TODO: erase the following line and implement this function.
-        raise NotImplementedError
+        time_start = time.time()
+        depth = 1
+        min_val, min_move = self.ExpectimaxSearch((board, Turn.INDEX_PLAYER_TURN, value), Turn.INDEX_PLAYER_TURN, depth)
+        curr_iter_time = time.time() - time_start
+        node_ratio = 2 * 4 * 15
+        prev_iter_time = curr_iter_time
+        prev_prev_iter_time = curr_iter_time
+        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
+            depth += 1
+            print("(Comp) curr depth is: " + str(depth))
+            iteration_start_time = time.time()
+            last_good_indices = min_move
+            val, min_move = self.ExpectimaxSearch((board, Turn.INDEX_PLAYER_TURN, value), Turn.INDEX_PLAYER_TURN, depth)
+            if val == float('inf'):
+                break
+            if val == float('-inf'):
+                min_move = last_good_indices
+                break
+            next_iteration_max_time = node_ratio * prev_prev_iter_time
+            prev_prev_iter_time = prev_iter_time
+            prev_iter_time = curr_iter_time
+            curr_iter_time = time.time() - iteration_start_time
+            print(" prev prev iter time: " + str(prev_prev_iter_time) + " curr iter time: " + str(
+                curr_iter_time) + " next max time: " + str(next_iteration_max_time))
+        self.move_count += 1
+        self.depth_sums += depth
+        return min_move
 
-    # TODO: add here helper functions in class, if needed
+    def ExpectimaxSearch(self, state, agent, depth):
+        board = state[0]
+        agentToMove = state[1]
+        info_flag = state[2]
+
+        if depth == 0:
+            return self.heuristic(state[0]), None
+        if self.is_goal(state):  # can only reach goal as the player and not the index, so always return -inf
+            return float('-inf'), None
+
+        if info_flag == 1:  # probability state appears before the index player's turn
+            val2, move1 = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
+            val4, move2 = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 4), agent, depth - 1)
+            exp = 0.9 * val2 + 0.1 * val4
+            return exp, None
+
+        turn = agentToMove
+        best_move = None
+        if turn == agent:
+            curr_max = float('-inf')
+            for (i, j) in self.get_empty_indices(board):
+                new_board = (self.copy_board(board))
+                new_board[i][j] = info_flag
+                new_state = (board, Turn.MOVE_PLAYER_TURN, 0)
+                val, child_move = self.ExpectimaxSearch(new_state, agent, depth - 1)
+                if val >= curr_max:
+                    curr_max = val
+                    best_move = (i, j)
+            return curr_max, best_move
+        else:  # move player's turn
+            cur_min = float('inf')
+            for move in Move:
+                new_board, valid, score = commands[move](self.copy_board(board))
+                if valid:
+                    new_state = (new_board, Turn.INDEX_PLAYER_TURN, 1)  # next state is probability state
+                    val, new_move = self.ExpectimaxSearch(new_state, agent, depth - 1)
+                    if val <= cur_min:
+                        cur_min = val
+                        best_move = move
+            return cur_min, best_move
+
+    def get_empty_indices(self, board):
+        empty = []
+        for i in range(0, 4):
+            for j in range(0, 4):
+                if board[i][j] == 0:
+                    empty.append((i, j))
+        return empty
+
+    def is_goal(self, state) -> bool:
+        return logic.game_state(state[0]) == 'lose'
+
+    def heuristic(self, board):
+        score = 0
+        emptySlots = 0
+        for row in range(len(board)):
+            for col in range(len(board)):
+                score += board[row][col]
+                if board[row][col] == 0:
+                    emptySlots = emptySlots + 1
+
+        return -1 * (0.45 * score + 0.55 * emptySlots)
+
+    def copy_board(self, board):
+        new_board = []
+        for i in range(4):
+            new_board.append([0] * 4)
+        for i in range(4):
+            for j in range(4):
+                new_board[i][j] = board[i][j]
+        return new_board
 
 
 # Tournament
@@ -571,10 +764,115 @@ class ContestMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
-        # TODO: add here if needed
+        self.depth_sums = 0
+        self.move_count = 0
 
     def get_move(self, board, time_limit) -> Move:
-        # TODO: erase the following line and implement this function.
-        raise NotImplementedError
+        time_start = time.time()
+        depth = 1
+        val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
+                                             float("-inf"), float("inf"))
+        # baseline time that we can use to estimate the next depth time
+        curr_iter_time = time.time() - time_start
+        node_ratio = 4 * 15
+        prev_iter_time = curr_iter_time
+        while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
+            depth += 1
+            print("(Player) curr depth is: " + str(depth))
+            iteration_start_time = time.time()
+            last_good_move = max_move
+            val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
+                                                 float("-inf"), float("inf"))
+            if val == float('inf'):
+                break
+            if val == float('-inf'):
+                max_move = last_good_move
+                break
+            next_iteration_max_time = node_ratio * prev_iter_time
+            prev_iter_time = curr_iter_time
+            curr_iter_time = time.time() - iteration_start_time
+            print(" prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(curr_iter_time) + " next max "
+                                                                                                          "time: " +
+                  str(next_iteration_max_time))
+        self.move_count += 1
+        self.depth_sums += depth
+        return max_move
 
-    # TODO: add here helper functions in class, if needed
+
+    def ABminimaxsearch(self, state, agent, depth, alpha, beta):
+        board = state[0]
+        curr_turn = state[1]
+        if depth == 0:
+            return self.basic_hueristic(board), None
+        if self.is_goal(state):
+            return float('-inf'), None
+        turn = curr_turn
+        best_move = None
+        if turn == agent:
+            cur_max = float("-inf")
+            for move in Move:
+                new_board, valid, score = commands[move](self.copy_board(board))
+                if valid:
+                    child_state = (new_board, Turn.INDEX_PLAYER_TURN)
+                    v, child_move = self.ABminimaxsearch(child_state, agent, depth - 1, alpha, beta)
+                    if v >= cur_max:
+                        cur_max = v
+                        best_move = move
+                    alpha = max(cur_max, alpha)
+                    if cur_max >= beta:
+                        return float("inf"), move
+            return cur_max, best_move
+        else:
+            cur_min = float("inf")
+            for (i, j, v) in self.get_empty_indexes(board):
+                new_board = self.copy_board(board)
+                new_board[i][j] = v
+                child_state = (new_board, Turn.MOVE_PLAYER_TURN)
+                v, child_move = self.ABminimaxsearch(child_state, agent, depth - 1, alpha, beta)
+                if v <= cur_min:
+                    cur_min = v
+                    best_move = (i, j, v)
+                beta = min(cur_min, beta)
+                if cur_min <= alpha:
+                    return float("-inf"), (i, j, v)
+            return cur_min, best_move
+
+    def basic_hueristic(self, board):
+        filled_score_map = [[1, 0.5, 0.5, 1],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [1, 0.5, 0.5, 1]]
+        empty_score_map = [[0, 0.5, 0.5, 0],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0, 0.5, 0.5, 0]]
+        filled_score = 0
+        empty_score = 0
+        for row in range(len(board)):
+            for col in range(len(board)):
+                filled_score += (board[row][col] ** 2) * filled_score_map[row][col]
+                if board[row][col] == 0:
+                    empty_score = empty_score + 256 * empty_score_map[row][col]
+
+        return 0.45 * filled_score + 0.55 * empty_score
+
+    def is_goal(self, state) -> bool:
+        return logic.game_state(state[0]) == 'lose'
+
+    def get_empty_indexes(self, board):
+        empty = []
+        for i in range(0, 4):
+            for j in range(0, 4):
+                if board[i][j] == 0:
+                    empty.append((i, j, 2))
+                    # empty.append((i, j, 4))
+        return empty
+
+    def copy_board(self, board):
+        new_board = []
+        for i in range(4):
+            new_board.append([0] * 4)
+        for i in range(4):
+            for j in range(4):
+                new_board[i][j] = board[i][j]
+        return new_board
