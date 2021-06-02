@@ -222,7 +222,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
                 max_move = last_good_move
                 break
             prev_iter_time = curr_iter_time
-            curr_iter_time = time.time() - iteration_start_time
+            curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
         return max_move
 
     def MinimaxSearch(self, state, agent, depth):
@@ -240,7 +240,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
                 new_board, valid, score = commands[move](self.copy_board(board))
                 if valid:
                     new_state = (new_board, Turn.INDEX_PLAYER_TURN)
-                    val, new_move = self.MinimaxSearch(new_state, agent, depth - 1)
+                    val, _ = self.MinimaxSearch(new_state, agent, depth - 1)
                     if val >= curr_max:
                         curr_max = val
                         best_move = move
@@ -251,7 +251,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
                 new_board = self.copy_board(board)
                 new_board[i][j] = 2
                 new_state = (new_board, Turn.MOVE_PLAYER_TURN)
-                val, child_move = self.MinimaxSearch(new_state, agent, depth - 1)
+                val, _ = self.MinimaxSearch(new_state, agent, depth - 1)
                 if val <= cur_min:
                     cur_min = val
                     best_move = (i, j)
@@ -317,7 +317,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
                 min_move = last_good_indices
                 break
             prev_iter_time = curr_iter_time
-            curr_iter_time = time.time() - iteration_start_time
+            curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
         return min_move
 
     def MinimaxSearch(self, state, agent, depth):
@@ -335,7 +335,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
                 new_board = (self.copy_board(board))
                 new_board[i][j] = 2
                 new_state = (board, Turn.MOVE_PLAYER_TURN)
-                val, child_move = self.MinimaxSearch(new_state, agent, depth - 1)
+                val, _ = self.MinimaxSearch(new_state, agent, depth - 1)
                 if val >= curr_max:
                     curr_max = val
                     best_move = (i, j)
@@ -346,7 +346,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
                 new_board, valid, score = commands[move](self.copy_board(board))
                 if valid:
                     new_state = (new_board, Turn.INDEX_PLAYER_TURN)
-                    val, new_move = self.MinimaxSearch(new_state, agent, depth - 1)
+                    val, _ = self.MinimaxSearch(new_state, agent, depth - 1)
                     if val <= cur_min:
                         cur_min = val
                         best_move = move
@@ -415,7 +415,7 @@ class ABMovePlayer(AbstractMovePlayer):
                 max_move = last_good_move
                 break
             prev_iter_time = curr_iter_time
-            curr_iter_time = time.time() - iteration_start_time
+            curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
         return max_move
 
     # TODO: add here helper functions in class, if needed
@@ -434,7 +434,7 @@ class ABMovePlayer(AbstractMovePlayer):
                 new_board, valid, score = commands[move](self.copy_board(board))
                 if valid:
                     child_state = (new_board, Turn.INDEX_PLAYER_TURN)
-                    v, child_move = self.ABminimaxsearch(child_state, agent, depth - 1, alpha, beta)
+                    v, _ = self.ABminimaxsearch(child_state, agent, depth - 1, alpha, beta)
                     if v >= cur_max:
                         cur_max = v
                         best_move = move
@@ -448,7 +448,7 @@ class ABMovePlayer(AbstractMovePlayer):
                 new_board = self.copy_board(board)
                 new_board[i][j] = v
                 child_state = (new_board, Turn.MOVE_PLAYER_TURN)
-                v, child_move = self.ABminimaxsearch(child_state, agent, depth - 1, alpha, beta)
+                v, _ = self.ABminimaxsearch(child_state, agent, depth - 1, alpha, beta)
                 if v <= cur_min:
                     cur_min = v
                     best_move = (i, j, v)
@@ -507,6 +507,8 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
+        self.depth_sums = 0
+        self.move_count = 0
 
     def get_move(self, board, time_limit) -> Move:
         time_start = time.time()
@@ -522,6 +524,7 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
         prev_prev_iter_time = curr_iter_time
         while node_ratio * prev_prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
+            # print("(Player) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.ExpectimaxSearch((board, Turn.MOVE_PLAYER_TURN, 0), Turn.MOVE_PLAYER_TURN, depth)
@@ -532,7 +535,12 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
                 break
             prev_prev_iter_time = prev_iter_time
             prev_iter_time = curr_iter_time
-            curr_iter_time = time.time() - iteration_start_time
+            next_iteration_max_time = node_ratio * prev_prev_iter_time
+            curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
+            # print(" prev prev iter time: " + str(prev_prev_iter_time) + " curr iter time: " + str(
+            #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
+            self.move_count += 1
+            self.depth_sums += depth
         return max_move
 
     def ExpectimaxSearch(self, state, agent, depth):
@@ -544,8 +552,8 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
         if self.is_goal(state):
             return float('-inf'), None
         if info_flag == 1:  # probability state appears before the index player's turn
-            val2, move1 = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
-            val4, move2 = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 4), agent, depth - 1)
+            val2, _ = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
+            val4, _ = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 4), agent, depth - 1)
             exp = 0.9 * val2 + 0.1 * val4
             """since the 2/4 choice is not a move and the initial caller doesn't have a turn of type "random choice"
              we can return a None best move"""
@@ -558,7 +566,7 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
                 new_board, valid, score = commands[move](self.copy_board(board))
                 if valid:
                     new_state = (new_board, Turn.INDEX_PLAYER_TURN, 1)  # next state is a probability state
-                    val, new_move = self.ExpectimaxSearch(new_state, agent, depth - 1)
+                    val, _ = self.ExpectimaxSearch(new_state, agent, depth - 1)
                     if val >= curr_max:
                         curr_max = val
                         best_move = move
@@ -569,7 +577,7 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
                 new_board = self.copy_board(board)
                 new_board[i][j] = info_flag
                 new_state = (new_board, Turn.MOVE_PLAYER_TURN, 0)
-                val, child_move = self.ExpectimaxSearch(new_state, agent, depth - 1)
+                val, _ = self.ExpectimaxSearch(new_state, agent, depth - 1)
                 if val <= cur_min:
                     cur_min = val
                     best_move = (i, j)
@@ -614,6 +622,8 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
 
     def __init__(self):
         AbstractIndexPlayer.__init__(self)
+        self.depth_sums = 0
+        self.move_count = 0
 
     def get_indices(self, board, value, time_limit) -> (int, int):
         time_start = time.time()
@@ -625,6 +635,7 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
         prev_prev_iter_time = curr_iter_time
         while node_ratio * prev_prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
+            # print("(Comp) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_indices = min_move
             val, min_move = self.ExpectimaxSearch((board, Turn.INDEX_PLAYER_TURN, value), Turn.INDEX_PLAYER_TURN, depth)
@@ -635,7 +646,12 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
                 break
             prev_prev_iter_time = prev_iter_time
             prev_iter_time = curr_iter_time
-            curr_iter_time = time.time() - iteration_start_time
+            next_iteration_max_time = node_ratio * prev_prev_iter_time
+            curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
+            # print(" prev prev iter time: " + str(prev_prev_iter_time) + " curr iter time: " + str(
+            #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
+            self.move_count += 1
+            self.depth_sums += depth
         return min_move
 
     def ExpectimaxSearch(self, state, agent, depth):
@@ -649,8 +665,8 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
             return float('-inf'), None
 
         if info_flag == 1:  # probability state appears before the index player's turn
-            val2, move1 = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
-            val4, move2 = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 4), agent, depth - 1)
+            val2, move1 = self.ExpectimaxSearch((self.copy_board(board), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
+            val4, move2 = self.ExpectimaxSearch((self.copy_board(board), Turn.INDEX_PLAYER_TURN, 4), agent, depth - 1)
             exp = 0.9 * val2 + 0.1 * val4
             return exp, None
 
@@ -661,8 +677,8 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
             for (i, j) in self.get_empty_indices(board):
                 new_board = (self.copy_board(board))
                 new_board[i][j] = info_flag
-                new_state = (board, Turn.MOVE_PLAYER_TURN, 0)
-                val, child_move = self.ExpectimaxSearch(new_state, agent, depth - 1)
+                new_state = (new_board, Turn.MOVE_PLAYER_TURN, 0)
+                val, _ = self.ExpectimaxSearch(new_state, agent, depth - 1)
                 if val >= curr_max:
                     curr_max = val
                     best_move = (i, j)
@@ -673,7 +689,7 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
                 new_board, valid, score = commands[move](self.copy_board(board))
                 if valid:
                     new_state = (new_board, Turn.INDEX_PLAYER_TURN, 1)  # next state is probability state
-                    val, new_move = self.ExpectimaxSearch(new_state, agent, depth - 1)
+                    val, _ = self.ExpectimaxSearch(new_state, agent, depth - 1)
                     if val <= cur_min:
                         cur_min = val
                         best_move = move
@@ -709,6 +725,7 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
             for j in range(4):
                 new_board[i][j] = board[i][j]
         return new_board
+
 
 # Tournament
 class ContestMovePlayer(AbstractMovePlayer):
@@ -778,7 +795,7 @@ class ContestMovePlayer(AbstractMovePlayer):
                 new_board = self.copy_board(board)
                 new_board[i][j] = v
                 child_state = (new_board, Turn.MOVE_PLAYER_TURN)
-                v, child_move = self.ContestMovePlayerSearch(child_state, agent, depth - 1, alpha, beta)
+                v, _ = self.ContestMovePlayerSearch(child_state, agent, depth - 1, alpha, beta)
                 if v <= cur_min:
                     cur_min = v
                     best_move = (i, j, v)
