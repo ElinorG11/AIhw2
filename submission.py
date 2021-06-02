@@ -665,8 +665,8 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
             return float('-inf'), None
 
         if info_flag == 1:  # probability state appears before the index player's turn
-            val2, move1 = self.ExpectimaxSearch((self.copy_board(board), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
-            val4, move2 = self.ExpectimaxSearch((self.copy_board(board), Turn.INDEX_PLAYER_TURN, 4), agent, depth - 1)
+            val2, _ = self.ExpectimaxSearch((self.copy_board(board), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
+            val4, _ = self.ExpectimaxSearch((self.copy_board(board), Turn.INDEX_PLAYER_TURN, 4), agent, depth - 1)
             exp = 0.9 * val2 + 0.1 * val4
             return exp, None
 
