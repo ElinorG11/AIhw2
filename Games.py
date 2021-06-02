@@ -55,12 +55,9 @@ class CustomGame(GameGrid):
                 move = self.move_player.get_move(copy.deepcopy(self.matrix), self.move_time_limit)
                 end = time.time()
                 time_diff = end - start
-                print("current average depth (Player): " + str(self.move_player.depth_sums / self.move_player.move_count))
                 #print(time_diff)
-                #print("current average depth: " + str(self.move_player.depth_sums / self.move_player.move_count))
                 if time_diff > self.move_time_limit:
                     print(f'Time up for player {Turn.MOVE_PLAYER_TURN}')
-                    print("time diff = " + str(time_diff))
                     break
 
                 if move is None:
@@ -87,13 +84,12 @@ class CustomGame(GameGrid):
                 indices = self.index_player.get_indices(copy.deepcopy(self.matrix), value, self.move_time_limit)
                 end = time.time()
                 time_diff = end - start
-                print("current average depth (Comp): " + str(self.index_player.depth_sums / self.index_player.move_count))
 
                 if time_diff > self.move_time_limit:
                     print(f'Time up for player {Turn.INDEX_PLAYER_TURN}')
                     break
                 if indices is None:
-                    print("illegal indices ")
+                    print("illegal indices")
                     break
 
                 i, j = indices
