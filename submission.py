@@ -414,7 +414,6 @@ class ABMovePlayer(AbstractMovePlayer):
             if val == float('-inf'):
                 max_move = last_good_move
                 break
-            next_iteration_max_time = node_ratio * prev_iter_time
             prev_iter_time = curr_iter_time
             curr_iter_time = time.time() - iteration_start_time
         return max_move
@@ -508,8 +507,6 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
-        self.depth_sums = 0
-        self.move_count = 0
 
     def get_move(self, board, time_limit) -> Move:
         time_start = time.time()
@@ -525,7 +522,6 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
         prev_prev_iter_time = curr_iter_time
         while node_ratio * prev_prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
-            print("(Player) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.ExpectimaxSearch((board, Turn.MOVE_PLAYER_TURN, 0), Turn.MOVE_PLAYER_TURN, depth)
@@ -534,14 +530,9 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
             if val == float('-inf'):
                 max_move = last_good_move
                 break
-            next_iteration_max_time = node_ratio * prev_prev_iter_time
             prev_prev_iter_time = prev_iter_time
             prev_iter_time = curr_iter_time
             curr_iter_time = time.time() - iteration_start_time
-            print(" prev prev iter time: " + str(prev_prev_iter_time) + " curr iter time: " + str(
-                curr_iter_time) + " next max time: " + str(next_iteration_max_time))
-        self.move_count += 1
-        self.depth_sums += depth
         return max_move
 
     def ExpectimaxSearch(self, state, agent, depth):
@@ -623,8 +614,6 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
 
     def __init__(self):
         AbstractIndexPlayer.__init__(self)
-        self.depth_sums = 0
-        self.move_count = 0
 
     def get_indices(self, board, value, time_limit) -> (int, int):
         time_start = time.time()
@@ -636,7 +625,6 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
         prev_prev_iter_time = curr_iter_time
         while node_ratio * prev_prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
-            #print("(Comp) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_indices = min_move
             val, min_move = self.ExpectimaxSearch((board, Turn.INDEX_PLAYER_TURN, value), Turn.INDEX_PLAYER_TURN, depth)
@@ -645,14 +633,9 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
             if val == float('-inf'):
                 min_move = last_good_indices
                 break
-            #next_iteration_max_time = node_ratio * prev_prev_iter_time
             prev_prev_iter_time = prev_iter_time
             prev_iter_time = curr_iter_time
             curr_iter_time = time.time() - iteration_start_time
-            #print(" prev prev iter time: " + str(prev_prev_iter_time) + " curr iter time: " + str(
-            #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
-        #self.move_count += 1
-        #self.depth_sums += depth
         return min_move
 
     def ExpectimaxSearch(self, state, agent, depth):
