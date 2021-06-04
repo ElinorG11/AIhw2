@@ -239,10 +239,10 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
     def MinimaxSearch(self, state, agent, depth):
         board = state[0]
         agentToMove = state[1]
-        if depth == 0:
-            return self.heuristic(state[0]), None
         if self.is_goal(state):
             return float('-inf'), None
+        if depth == 0:
+            return self.heuristic(state[0]), None
         turn = agentToMove
         best_move = None
         if turn == agent:
@@ -351,11 +351,12 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
     def MinimaxSearch(self, state, agent, depth):
         board = state[0]
         agentToMove = state[1]
-        if depth == 0:
-            return self.heuristic(state[0]), None
         if self.is_goal(state):  # can only reach goal as a result of index's move, so we return inf to reinforce this
             # move (goal state is good for index)
             return float('inf'), None
+
+        if depth == 0:
+            return self.heuristic(state[0]), None
         turn = agentToMove
         best_move = None
         if turn == agent:
@@ -467,10 +468,12 @@ class ABMovePlayer(AbstractMovePlayer):
     def ABminimaxsearch(self, state, agent, depth, alpha, beta):
         board = state[0]
         curr_turn = state[1]
-        if depth == 0:
-            return self.heuristic(board), None
+
         if self.is_goal(state):
             return float('-inf'), None
+        if depth == 0:
+            return self.heuristic(board), None
+
         turn = curr_turn
         best_move = None
         if turn == agent:
@@ -592,10 +595,13 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
         board = state[0]
         agentToMove = state[1]
         info_flag = state[2]  # holds 1 if probability state,  0 in move_player state and 2/4 in index state
-        if depth == 0:
-            return self.heuristic(state[0]), None
+
         if self.is_goal(state):
             return float('-inf'), None
+
+        if depth == 0:
+            return self.heuristic(state[0]), None
+
         if info_flag == 1:  # probability state appears before the index player's turn
             val2, _ = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
             val4, _ = self.ExpectimaxSearch(((self.copy_board(board)), Turn.INDEX_PLAYER_TURN, 4), agent, depth - 1)
@@ -713,11 +719,13 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
         agentToMove = state[1]
         info_flag = state[2]
 
-        if depth == 0:
-            return self.heuristic(state[0]), None
         if self.is_goal(state):  # can only reach goal as a result of index's move, so we return inf to reinforce this
             # move
             return float('inf'), None
+
+        if depth == 0:
+            return self.heuristic(state[0]), None
+
 
         if info_flag == 1:  # probability state appears before the index player's turn
             val2, _ = self.ExpectimaxSearch((self.copy_board(board), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
@@ -832,10 +840,12 @@ class ContestMovePlayer(AbstractMovePlayer):
             return float("-inf"), None
         board = state[0]
         curr_turn = state[1]
-        if depth == 0:
-            return self.heuristic(board), None
+
         if self.is_goal(state):
             return float('-inf'), None
+        if depth == 0:
+            return self.heuristic(board), None
+
         turn = curr_turn
         best_move = None
         if turn == agent:
