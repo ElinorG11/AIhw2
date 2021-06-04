@@ -229,7 +229,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
             # where the current iteration as faster than the previous one even though
             # it has a greater tree-depth to search
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
-            next_iteration_max_time = node_ratio*prev_iter_time
+            next_iteration_max_time = node_ratio * prev_iter_time
             print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
                 curr_iter_time) + " next max time: " + str(next_iteration_max_time))
         self.move_count += 1
@@ -334,18 +334,18 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             iteration_start_time = time.time()
             last_good_indices = min_move
             val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
-            if val == float('inf'):
+            if val == float('inf'):  # found winning moves (only possible for index)
                 break
-            if val == float('-inf'):
+            if val == float('-inf'):  # not possible for index
                 min_move = last_good_indices
                 break
             prev_iter_time = curr_iter_time
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
-            next_iteration_max_time = node_ratio*prev_iter_time
+            next_iteration_max_time = node_ratio * prev_iter_time
             print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
                 curr_iter_time) + " next max time: " + str(next_iteration_max_time))
-            self.move_count += 1
-            self.depth_sums += depth
+        self.move_count += 1
+        self.depth_sums += depth
         return min_move
 
     def MinimaxSearch(self, state, agent, depth):
@@ -353,8 +353,9 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         agentToMove = state[1]
         if depth == 0:
             return self.heuristic(state[0]), None
-        if self.is_goal(state):  # can only reach goal as the player and not the index, so always return -inf
-            return float('-inf'), None
+        if self.is_goal(state):  # can only reach goal as a result of index's move, so we return inf to reinforce this
+            # move (goal state is good for index)
+            return float('inf'), None
         turn = agentToMove
         best_move = None
         if turn == agent:
@@ -408,7 +409,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
                 if board[row][col] == 0:
                     empty_score = empty_score + 256 * empty_score_map[row][col]
 
-        return -1*(0.45 * filled_score + 0.55 * empty_score)
+        return -1 * (0.45 * filled_score + 0.55 * empty_score)
 
     def copy_board(self, board):
         new_board = []
@@ -455,7 +456,7 @@ class ABMovePlayer(AbstractMovePlayer):
                 break
             prev_iter_time = curr_iter_time
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
-            next_iteration_max_time = node_ratio*prev_iter_time
+            next_iteration_max_time = node_ratio * prev_iter_time
             print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
                 curr_iter_time) + " next max time: " + str(next_iteration_max_time))
         self.move_count += 1
@@ -714,8 +715,9 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
 
         if depth == 0:
             return self.heuristic(state[0]), None
-        if self.is_goal(state):  # can only reach goal as the player and not the index, so always return -inf
-            return float('-inf'), None
+        if self.is_goal(state):  # can only reach goal as a result of index's move, so we return inf to reinforce this
+            # move
+            return float('inf'), None
 
         if info_flag == 1:  # probability state appears before the index player's turn
             val2, _ = self.ExpectimaxSearch((self.copy_board(board), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
