@@ -21,7 +21,7 @@ class KeyBoardGame(GameGrid):
         if key in self.commands:
             self.matrix, done, score = self.commands[repr(event.char)](self.matrix)
             self.total_score += score
-            #print(f'score + {score}')
+            # print(f'score + {score}')
             if done:
                 self.matrix = logic.add_two(self.matrix)
                 self.update_grid_cells()
@@ -55,7 +55,9 @@ class CustomGame(GameGrid):
                 move = self.move_player.get_move(copy.deepcopy(self.matrix), self.move_time_limit)
                 end = time.time()
                 time_diff = end - start
-                #print(time_diff)
+                #print(
+                #    "current average depth (Player): " + str(self.move_player.depth_sums / self.move_player.move_count))
+                # print(time_diff)
                 if time_diff > self.move_time_limit:
                     print(f'Time up for player {Turn.MOVE_PLAYER_TURN}')
                     break
@@ -64,14 +66,14 @@ class CustomGame(GameGrid):
                     print("illegal move")
                     break
 
-                #print(move)
+                # print(move)
                 self.matrix, done, score = self.commands[move](self.matrix)
                 if not done:
                     print("illegal move")
                     break
 
                 self.total_score += score
-                #print(f'score + {score}')
+                # print(f'score + {score}')
                 self.curr_agent = Turn.INDEX_PLAYER_TURN
 
             elif self.curr_agent == Turn.INDEX_PLAYER_TURN:
@@ -84,6 +86,8 @@ class CustomGame(GameGrid):
                 indices = self.index_player.get_indices(copy.deepcopy(self.matrix), value, self.move_time_limit)
                 end = time.time()
                 time_diff = end - start
+                print(
+                    "current average depth (Comp): " + str(self.index_player.depth_sums / self.index_player.move_count))
 
                 if time_diff > self.move_time_limit:
                     print(f'Time up for player {Turn.INDEX_PLAYER_TURN}')

@@ -191,6 +191,8 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
+        self.depth_sums = 0
+        self.move_count = 0
 
     def get_move(self, board, time_limit) -> Move:
         time_start = time.time()
@@ -213,6 +215,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         prev_iter_time = curr_iter_time
         while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
+            print("(Player) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.MinimaxSearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth)
@@ -222,7 +225,15 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
                 max_move = last_good_move
                 break
             prev_iter_time = curr_iter_time
+            # using max here to make sure curr_iter_time always rises, to avoid 'noise'
+            # where the current iteration as faster than the previous one even though
+            # it has a greater tree-depth to search
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
+            next_iteration_max_time = node_ratio*prev_iter_time
+            print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
+                curr_iter_time) + " next max time: " + str(next_iteration_max_time))
+        self.move_count += 1
+        self.depth_sums += depth
         return max_move
 
     def MinimaxSearch(self, state, agent, depth):
@@ -266,14 +277,23 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         return empty
 
     def heuristic(self, board):
-        score = 0
-        emptySlots = 0
+        filled_score_map = [[1, 0.5, 0.5, 1],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [1, 0.5, 0.5, 1]]
+        empty_score_map = [[0, 0.5, 0.5, 0],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0, 0.5, 0.5, 0]]
+        filled_score = 0
+        empty_score = 0
         for row in range(len(board)):
             for col in range(len(board)):
-                score += board[row][col]
+                filled_score += (board[row][col] ** 2) * filled_score_map[row][col]
                 if board[row][col] == 0:
-                    emptySlots = emptySlots + 1
-        return 0.45 * score + 0.55 * emptySlots
+                    empty_score = empty_score + 256 * empty_score_map[row][col]
+
+        return 0.45 * filled_score + 0.55 * empty_score
 
     def is_goal(self, state) -> bool:
         return logic.game_state(state[0]) == 'lose'
@@ -298,6 +318,8 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
 
     def __init__(self):
         AbstractIndexPlayer.__init__(self)
+        self.depth_sums = 0
+        self.move_count = 0
 
     def get_indices(self, board, value, time_limit) -> (int, int):
         time_start = time.time()
@@ -308,6 +330,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         prev_iter_time = curr_iter_time
         while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
+            print("(Comp) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_indices = min_move
             val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
@@ -318,6 +341,11 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
                 break
             prev_iter_time = curr_iter_time
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
+            next_iteration_max_time = node_ratio*prev_iter_time
+            print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
+                curr_iter_time) + " next max time: " + str(next_iteration_max_time))
+            self.move_count += 1
+            self.depth_sums += depth
         return min_move
 
     def MinimaxSearch(self, state, agent, depth):
@@ -334,7 +362,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             for (i, j) in self.get_empty_indices(board):
                 new_board = (self.copy_board(board))
                 new_board[i][j] = 2
-                new_state = (board, Turn.MOVE_PLAYER_TURN)
+                new_state = (new_board, Turn.MOVE_PLAYER_TURN)
                 val, _ = self.MinimaxSearch(new_state, agent, depth - 1)
                 if val >= curr_max:
                     curr_max = val
@@ -364,15 +392,23 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         return logic.game_state(state[0]) == 'lose'
 
     def heuristic(self, board):
-        score = 0
-        emptySlots = 0
+        filled_score_map = [[1, 0.5, 0.5, 1],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [1, 0.5, 0.5, 1]]
+        empty_score_map = [[0, 0.5, 0.5, 0],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0, 0.5, 0.5, 0]]
+        filled_score = 0
+        empty_score = 0
         for row in range(len(board)):
             for col in range(len(board)):
-                score += board[row][col]
+                filled_score += (board[row][col] ** 2) * filled_score_map[row][col]
                 if board[row][col] == 0:
-                    emptySlots = emptySlots + 1
+                    empty_score = empty_score + 256 * empty_score_map[row][col]
 
-        return -1 * (0.45 * score + 0.55 * emptySlots)
+        return -1*(0.45 * filled_score + 0.55 * empty_score)
 
     def copy_board(self, board):
         new_board = []
@@ -393,6 +429,8 @@ class ABMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
+        self.depth_sums = 0
+        self.move_count = 0
 
     def get_move(self, board, time_limit) -> Move:
         time_start = time.time()
@@ -405,6 +443,7 @@ class ABMovePlayer(AbstractMovePlayer):
         prev_iter_time = curr_iter_time
         while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
+            print("(Player) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
@@ -416,6 +455,11 @@ class ABMovePlayer(AbstractMovePlayer):
                 break
             prev_iter_time = curr_iter_time
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
+            next_iteration_max_time = node_ratio*prev_iter_time
+            print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
+                curr_iter_time) + " next max time: " + str(next_iteration_max_time))
+        self.move_count += 1
+        self.depth_sums += depth
         return max_move
 
     # TODO: add here helper functions in class, if needed
@@ -423,7 +467,7 @@ class ABMovePlayer(AbstractMovePlayer):
         board = state[0]
         curr_turn = state[1]
         if depth == 0:
-            return self.basic_hueristic(board), None
+            return self.heuristic(board), None
         if self.is_goal(state):
             return float('-inf'), None
         turn = curr_turn
@@ -457,7 +501,7 @@ class ABMovePlayer(AbstractMovePlayer):
                     return float("-inf"), (i, j, v)
             return cur_min, best_move
 
-    def basic_hueristic(self, board):
+    def heuristic(self, board):
         filled_score_map = [[1, 0.5, 0.5, 1],
                             [0.5, 0.2, 0.2, 0.5],
                             [0.5, 0.2, 0.2, 0.5],
@@ -539,8 +583,8 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
             # print(" prev prev iter time: " + str(prev_prev_iter_time) + " curr iter time: " + str(
             #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
-            self.move_count += 1
-            self.depth_sums += depth
+        self.move_count += 1
+        self.depth_sums += depth
         return max_move
 
     def ExpectimaxSearch(self, state, agent, depth):
@@ -592,14 +636,23 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
         return empty
 
     def heuristic(self, board):
-        score = 0
-        emptySlots = 0
+        filled_score_map = [[1, 0.5, 0.5, 1],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [1, 0.5, 0.5, 1]]
+        empty_score_map = [[0, 0.5, 0.5, 0],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0, 0.5, 0.5, 0]]
+        filled_score = 0
+        empty_score = 0
         for row in range(len(board)):
             for col in range(len(board)):
-                score += board[row][col]
+                filled_score += (board[row][col] ** 2) * filled_score_map[row][col]
                 if board[row][col] == 0:
-                    emptySlots = emptySlots + 1
-        return 0.45 * score + 0.55 * emptySlots
+                    empty_score = empty_score + 256 * empty_score_map[row][col]
+
+        return 0.45 * filled_score + 0.55 * empty_score
 
     def is_goal(self, state) -> bool:
         return logic.game_state(state[0]) == 'lose'
@@ -650,8 +703,8 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
             # print(" prev prev iter time: " + str(prev_prev_iter_time) + " curr iter time: " + str(
             #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
-            self.move_count += 1
-            self.depth_sums += depth
+        self.move_count += 1
+        self.depth_sums += depth
         return min_move
 
     def ExpectimaxSearch(self, state, agent, depth):
@@ -707,15 +760,23 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
         return logic.game_state(state[0]) == 'lose'
 
     def heuristic(self, board):
-        score = 0
-        emptySlots = 0
+        filled_score_map = [[1, 0.5, 0.5, 1],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [0.5, 0.2, 0.2, 0.5],
+                            [1, 0.5, 0.5, 1]]
+        empty_score_map = [[0, 0.5, 0.5, 0],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0.5, 0.8, 0.8, 0.5],
+                           [0, 0.5, 0.5, 0]]
+        filled_score = 0
+        empty_score = 0
         for row in range(len(board)):
             for col in range(len(board)):
-                score += board[row][col]
+                filled_score += (board[row][col] ** 2) * filled_score_map[row][col]
                 if board[row][col] == 0:
-                    emptySlots = emptySlots + 1
+                    empty_score = empty_score + 256 * empty_score_map[row][col]
 
-        return -1 * (0.45 * score + 0.55 * emptySlots)
+        return 0.45 * filled_score + 0.55 * empty_score
 
     def copy_board(self, board):
         new_board = []
@@ -770,7 +831,7 @@ class ContestMovePlayer(AbstractMovePlayer):
         board = state[0]
         curr_turn = state[1]
         if depth == 0:
-            return self.basic_hueristic(board), None
+            return self.heuristic(board), None
         if self.is_goal(state):
             return float('-inf'), None
         turn = curr_turn
@@ -804,7 +865,7 @@ class ContestMovePlayer(AbstractMovePlayer):
                     return float("-inf"), (i, j, v)
             return cur_min, best_move
 
-    def basic_hueristic(self, board):
+    def heuristic(self, board):
         filled_score_map = [[1, 0.5, 0.5, 1],
                             [0.5, 0.2, 0.2, 0.5],
                             [0.5, 0.2, 0.2, 0.5],
