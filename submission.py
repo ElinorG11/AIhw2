@@ -191,6 +191,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
+        # fields used for error debugging & calculating average depth for q. 12 in dry assignment
         self.depth_sums = 0
         self.move_count = 0
 
@@ -228,12 +229,12 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
             # using max here to make sure curr_iter_time always rises, to avoid 'noise'
             # where the current iteration as faster than the previous one even though
             # it has a greater tree-depth to search
-            curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
-            next_iteration_max_time = node_ratio * prev_iter_time
+            curr_iter_time = time.time() - iteration_start_time
+            #next_iteration_max_time = node_ratio * prev_iter_time
             #print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
             #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
-        self.move_count += 1
-        self.depth_sums += depth
+        #self.move_count += 1
+        #self.depth_sums += depth
         return max_move
 
     def MinimaxSearch(self, state, agent, depth):
@@ -318,6 +319,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
 
     def __init__(self):
         AbstractIndexPlayer.__init__(self)
+        # fields used for error debugging & calculating average depth for q. 12 in dry assignment
         self.depth_sums = 0
         self.move_count = 0
 
@@ -340,12 +342,12 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
                 min_move = last_good_indices
                 break
             prev_iter_time = curr_iter_time
-            curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
+            curr_iter_time = time.time() - iteration_start_time
             next_iteration_max_time = node_ratio * prev_iter_time
             #print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
             #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
-        self.move_count += 1
-        self.depth_sums += depth
+        #self.move_count += 1
+        #self.depth_sums += depth
         return min_move
 
     def MinimaxSearch(self, state, agent, depth):
@@ -431,8 +433,9 @@ class ABMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
-        self.depth_sums = 0
-        self.move_count = 0
+        # fields used for error debugging & calculating average depth for q. 12 in dry assignment
+        #self.depth_sums = 0
+        #self.move_count = 0
 
     def get_move(self, board, time_limit) -> Move:
         time_start = time.time()
@@ -456,12 +459,12 @@ class ABMovePlayer(AbstractMovePlayer):
                 max_move = last_good_move
                 break
             prev_iter_time = curr_iter_time
-            curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
+            curr_iter_time = time.time() - iteration_start_time
             next_iteration_max_time = node_ratio * prev_iter_time
             #print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
             #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
-        self.move_count += 1
-        self.depth_sums += depth
+        #self.move_count += 1
+        #self.depth_sums += depth
         return max_move
 
     # TODO: add here helper functions in class, if needed
@@ -555,8 +558,9 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
 
     def __init__(self):
         AbstractMovePlayer.__init__(self)
-        self.depth_sums = 0
-        self.move_count = 0
+        # fields used for error debugging & calculating average depth for q. 12 in dry assignment
+        #self.depth_sums = 0
+        #self.move_count = 0
 
     def get_move(self, board, time_limit) -> Move:
         time_start = time.time()
@@ -584,11 +588,11 @@ class ExpectimaxMovePlayer(AbstractMovePlayer):
             prev_prev_iter_time = prev_iter_time
             prev_iter_time = curr_iter_time
             next_iteration_max_time = node_ratio * prev_prev_iter_time
-            curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
+            curr_iter_time = time.time() - iteration_start_time
             # print(" prev prev iter time: " + str(prev_prev_iter_time) + " curr iter time: " + str(
             #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
-        self.move_count += 1
-        self.depth_sums += depth
+        #self.move_count += 1
+        #self.depth_sums += depth
         return max_move
 
     def ExpectimaxSearch(self, state, agent, depth):
@@ -682,8 +686,9 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
 
     def __init__(self):
         AbstractIndexPlayer.__init__(self)
-        self.depth_sums = 0
-        self.move_count = 0
+        # fields used for error debugging & calculating average depth for q. 12 in dry assignment
+        #self.depth_sums = 0
+        #self.move_count = 0
 
     def get_indices(self, board, value, time_limit) -> (int, int):
         time_start = time.time()
@@ -707,11 +712,11 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
             prev_prev_iter_time = prev_iter_time
             prev_iter_time = curr_iter_time
             next_iteration_max_time = node_ratio * prev_prev_iter_time
-            curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
+            curr_iter_time = time.time() - iteration_start_time
             # print(" prev prev iter time: " + str(prev_prev_iter_time) + " curr iter time: " + str(
             #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
-        self.move_count += 1
-        self.depth_sums += depth
+        #self.move_count += 1
+        #self.depth_sums += depth
         return min_move
 
     def ExpectimaxSearch(self, state, agent, depth):
