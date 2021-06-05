@@ -215,7 +215,7 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
         prev_iter_time = curr_iter_time
         while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
-            print("(Player) curr depth is: " + str(depth))
+            #print("(Player) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.MinimaxSearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth)
@@ -230,8 +230,8 @@ class MiniMaxMovePlayer(AbstractMovePlayer):
             # it has a greater tree-depth to search
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
             next_iteration_max_time = node_ratio * prev_iter_time
-            print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
-                curr_iter_time) + " next max time: " + str(next_iteration_max_time))
+            #print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
+            #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
         self.move_count += 1
         self.depth_sums += depth
         return max_move
@@ -330,7 +330,7 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
         prev_iter_time = curr_iter_time
         while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
-            print("(Comp) curr depth is: " + str(depth))
+            #print("(Comp) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_indices = min_move
             val, min_move = self.MinimaxSearch((board, Turn.INDEX_PLAYER_TURN), Turn.INDEX_PLAYER_TURN, depth)
@@ -342,8 +342,8 @@ class MiniMaxIndexPlayer(AbstractIndexPlayer):
             prev_iter_time = curr_iter_time
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
             next_iteration_max_time = node_ratio * prev_iter_time
-            print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
-                curr_iter_time) + " next max time: " + str(next_iteration_max_time))
+            #print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
+            #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
         self.move_count += 1
         self.depth_sums += depth
         return min_move
@@ -445,7 +445,7 @@ class ABMovePlayer(AbstractMovePlayer):
         prev_iter_time = curr_iter_time
         while node_ratio * prev_iter_time < time_limit - (time.time() - time_start) - 0.01:
             depth += 1
-            print("(Player) curr depth is: " + str(depth))
+            #print("(Player) curr depth is: " + str(depth))
             iteration_start_time = time.time()
             last_good_move = max_move
             val, max_move = self.ABminimaxsearch((board, Turn.MOVE_PLAYER_TURN), Turn.MOVE_PLAYER_TURN, depth,
@@ -458,8 +458,8 @@ class ABMovePlayer(AbstractMovePlayer):
             prev_iter_time = curr_iter_time
             curr_iter_time = max(time.time() - iteration_start_time, curr_iter_time)
             next_iteration_max_time = node_ratio * prev_iter_time
-            print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
-                curr_iter_time) + " next max time: " + str(next_iteration_max_time))
+            #print("prev iter time: " + str(prev_iter_time) + " curr iter time: " + str(
+            #    curr_iter_time) + " next max time: " + str(next_iteration_max_time))
         self.move_count += 1
         self.depth_sums += depth
         return max_move
@@ -725,7 +725,6 @@ class ExpectimaxIndexPlayer(AbstractIndexPlayer):
 
         if depth == 0:
             return self.heuristic(state[0]), None
-
 
         if info_flag == 1:  # probability state appears before the index player's turn
             val2, _ = self.ExpectimaxSearch((self.copy_board(board), Turn.INDEX_PLAYER_TURN, 2), agent, depth - 1)
